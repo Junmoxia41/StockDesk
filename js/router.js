@@ -9,6 +9,9 @@ const Router = {
     
     // Rutas públicas que no requieren verificación de seguridad
     publicRoutes: ['splash', 'landing', 'login', 'device-setup'],
+    
+    // Variable para evitar bucles de redirección
+    redirectAttempts: 0,
 
     // Register a route
     register(path, handler) {
@@ -29,15 +32,23 @@ const Router = {
 
             // 2. Verificar Permisos de Rol (RBAC)
             const roleName = user.role;
-            const allRoles = Store.get('stockdesk_roles') || [
-                { name: 'Administrador', permissions: ['all'] },
-                { name: 'Cajero', permissions: ['sales'] }
-            ];
+            
+            // CORRECCIÓN: Obtener roles y validar si está vacío
+            let allRoles = Store.get('stockdesk_roles');
+            
+            // Si es null, undefined o array vacío, usar defaults
+            if (!allRoles || allRoles.length === 0) {
+                allRoles = [
+                    { name: 'Administrador', permissions: ['all'] },
+                    { name: 'Gerente', permissions: ['products', 'sales', 'reports', 'users'] },
+                    { name: 'Cajero', permissions: ['sales'] }
+                ];
+            }
             
             const userRoleConfig = allRoles.find(r => r.name === roleName);
             const permissions = userRoleConfig ? userRoleConfig.permissions : [];
 
-            // Reglas de acceso basadas en permisos dinámicos
+            // Reglas de acceso
             const routePermissions = {
                 'products': ['all', 'products', 'products.view'],
                 'inventory': ['all', 'inventory'],
@@ -45,27 +56,35 @@ const Router = {
                 'reports': ['all', 'reports'],
                 'users': ['all', 'users'],
                 'finance': ['all'],
-                'sales': ['all', 'sales'] // Casi todos pueden vender
+                'sales': ['all', 'sales']
             };
 
-            // Si la ruta requiere permisos y el usuario NO tiene ninguno de los requeridos
+            // Si la ruta requiere permisos
             if (routePermissions[path]) {
                 const required = routePermissions[path];
                 const hasPermission = required.some(req => permissions.includes(req));
                 
                 if (!hasPermission) {
                     console.warn(`Acceso denegado a ${path}. Permisos insuficientes.`);
-                    Components.toast(`⛔ Acceso denegado: Rol ${roleName} sin permisos.`, 'error');
                     
-                    // Redirigir a zona segura
-                    if (this.currentRoute !== 'sales') {
-                        setTimeout(() => this.navigate('sales'), 100);
+                    // CORRECCIÓN: Limitar intentos para evitar bucle infinito
+                    if (this.redirectAttempts < 1) {
+                        this.redirectAttempts++;
+                        Components.toast(`⛔ Acceso denegado: Rol ${roleName} sin permisos para esta sección.`, 'error', 4000);
+                        
+                        // Redirigir a zona segura
+                        // Intentamos ir a 'sales', si falla, a 'dashboard'
+                        const safeRoute = (path !== 'sales') ? 'sales' : 'dashboard';
+                        setTimeout(() => this.navigate(safeRoute), 100);
                     }
                     return;
                 }
             }
+            
+            // Resetear contador de intentos si el acceso fue exitoso
+            this.redirectAttempts = 0;
 
-            // 3. Verificar Seguridad (Horarios, IP) - Solo si pasa lo anterior
+            // 3. Verificar Seguridad (Horarios, IP)
             if (typeof SecurityAccess !== 'undefined') {
                 const access = SecurityAccess.checkAccess();
                 if (!access.allowed) {
@@ -82,7 +101,6 @@ const Router = {
             window.history.pushState({ path, params }, '', `#${path}`);
             this.render(path, params);
         } else {
-            // Manejo de 404
             console.warn(`Ruta no encontrada: ${path}.`);
             const user = Store.get(Store.KEYS.USER);
             if (user && user.loggedIn) {
@@ -104,27 +122,22 @@ const Router = {
             } else if (content instanceof HTMLElement) {
                 app.appendChild(content);
             }
-            // Execute after render callbacks
             this.executeAfterRender(path);
         }
     },
 
-    // After render callbacks storage
     afterRenderCallbacks: {},
 
-    // Register after render callback
     onAfterRender(path, callback) {
         this.afterRenderCallbacks[path] = callback;
     },
 
-    // Execute after render
     executeAfterRender(path) {
         if (this.afterRenderCallbacks[path]) {
             setTimeout(() => this.afterRenderCallbacks[path](), 0);
         }
     },
 
-    // Handle browser back/forward
     init() {
         window.addEventListener('popstate', (e) => {
             if (e.state && e.state.path) {
@@ -132,14 +145,12 @@ const Router = {
             }
         });
 
-        // Check initial hash
         const hash = window.location.hash.slice(1);
         if (hash && this.routes[hash]) {
             this.navigate(hash);
         }
     },
 
-    // Get current route
     getCurrentRoute() {
         return this.currentRoute;
     }
