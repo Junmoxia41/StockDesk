@@ -111,11 +111,19 @@ const Store = {
         console.log('📦 Store: Initializing Safe Load...');
         
         // 1. Initialize basic keys with [] if missing
+        // CORRECCIÓN: Excluimos ROLES para que no se inicialice vacío []
         Object.values(this.KEYS).forEach(key => {
             if (!localStorage.getItem(key)) {
-                // If it's a key that requires a complex object default, handle it below.
-                // Otherwise, default to empty array for lists.
-                const isList = !['stockdesk_settings', 'stockdesk_security', 'stockdesk_security_access', 'stockdesk_alert_config'].includes(key);
+                const isExcluded = [
+                    'stockdesk_settings', 
+                    'stockdesk_security', 
+                    'stockdesk_security_access', 
+                    'stockdesk_alert_config',
+                    this.KEYS.ROLES // <--- CORRECCIÓN AQUÍ
+                ].includes(key);
+                
+                const isList = !isExcluded;
+                
                 if (isList && !this._getDefaultForKey(key)) {
                     this.set(key, []);
                 }
@@ -123,7 +131,6 @@ const Store = {
         });
 
         // 2. Perform Deep Merge for Configuration Objects
-        // This ensures new features don't crash old data
         this._safeLoad(this.KEYS.SETTINGS, this.DEFAULTS.settings);
         this._safeLoad(this.KEYS.WAREHOUSES, this.DEFAULTS.warehouses);
         this._safeLoad(this.KEYS.SECURITY, this.DEFAULTS.security);
@@ -142,10 +149,8 @@ const Store = {
 
     // Helper: Get default value if defined in DEFAULTS
     _getDefaultForKey(storageKey) {
-        // Map storage keys to DEFAULTS properties
         if (storageKey === this.KEYS.SETTINGS) return this.DEFAULTS.settings;
         if (storageKey === this.KEYS.SECURITY) return this.DEFAULTS.security;
-        // ... add others if needed for strict mapping
         return null;
     },
 
@@ -153,16 +158,11 @@ const Store = {
     _safeLoad(key, defaults) {
         const current = this.get(key);
         if (!current) {
-            // New install or missing key: Set default
             this.set(key, defaults);
         } else if (typeof defaults === 'object' && !Array.isArray(defaults)) {
-            // Existing data: Merge to ensure new fields exist
-            // We clone defaults first, then overwrite with current data
-            // This ensures structure matches latest version
             const merged = this._deepMerge(defaults, current);
             this.set(key, merged);
         }
-        // Arrays are generally just loaded or initialized as-is
     },
 
     _deepMerge(target, source) {
@@ -189,7 +189,6 @@ const Store = {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
-        // List of log keys to clean
         const logKeys = [
             this.KEYS.SECURITY_LOGS,
             this.KEYS.AUDIT_LOGS
@@ -223,7 +222,6 @@ const Store = {
             return true;
         } catch (e) {
             console.error(`Store.set error (${key}):`, e);
-            // Handle quota exceeded?
             if (e.name === 'QuotaExceededError') {
                 Components.toast('⚠️ Memoria llena. Borra historial antiguo.', 'warning', 5000);
             }
@@ -233,13 +231,11 @@ const Store = {
 
     // --- Specific Module Accessors (Proxies) ---
 
-    // Device config
     device: {
         get() { return Store.get(Store.KEYS.DEVICE); },
         set(device) { Store.set(Store.KEYS.DEVICE, device); }
     },
 
-    // Products
     products: {
         getAll() { return Store.get(Store.KEYS.PRODUCTS) || []; },
         getById(id) { return this.getAll().find(p => p.id === id); },
@@ -307,7 +303,6 @@ const Store = {
         }
     },
 
-    // Warehouses
     warehouses: {
         getAll() { return Store.get(Store.KEYS.WAREHOUSES) || []; },
         getById(id) { return this.getAll().find(w => w.id === id); },
@@ -335,7 +330,6 @@ const Store = {
         }
     },
 
-    // Transfers
     transfers: {
         getAll() { return Store.get(Store.KEYS.TRANSFERS) || []; },
         add(transfer) {
@@ -352,7 +346,6 @@ const Store = {
         }
     },
 
-    // Kardex
     kardex: {
         getAll() { return Store.get(Store.KEYS.KARDEX) || []; },
         getByProduct(productId) { return this.getAll().filter(k => k.productId === productId); },
@@ -373,7 +366,6 @@ const Store = {
         }
     },
 
-    // Inventory Counts
     inventoryCounts: {
         getAll() { return Store.get(Store.KEYS.INVENTORY_COUNTS) || []; },
         add(count) {
@@ -383,7 +375,6 @@ const Store = {
         }
     },
 
-    // Kits
     kits: {
         getAll() { return Store.get(Store.KEYS.KITS) || []; },
         add(kit) {
@@ -400,7 +391,6 @@ const Store = {
         }
     },
 
-    // Sales
     sales: {
         getAll() { return Store.get(Store.KEYS.SALES) || []; },
         add(sale) {
@@ -426,7 +416,6 @@ const Store = {
         }
     },
 
-    // Transactions
     transactions: {
         getAll() { return Store.get(Store.KEYS.TRANSACTIONS) || []; },
         add(transaction) {
@@ -443,7 +432,6 @@ const Store = {
         }
     },
 
-    // Expenses
     expenses: {
         getAll() { return Store.get(Store.KEYS.EXPENSES) || []; },
         add(expense) {
@@ -456,7 +444,6 @@ const Store = {
         }
     },
 
-    // Payroll
     payroll: {
         getAll() { return Store.get(Store.KEYS.PAYROLL) || []; },
         getEmployees() { return this.getAll().filter(p => p.type === 'employee'); },
@@ -475,7 +462,6 @@ const Store = {
         }
     },
 
-    // Budgets
     budgets: {
         getAll() { return Store.get(Store.KEYS.BUDGETS) || []; },
         add(budget) {
@@ -494,7 +480,6 @@ const Store = {
         }
     },
 
-    // Settings Proxy
     settings: {
         get() { return Store.get(Store.KEYS.SETTINGS) || {}; },
         update(data) {
@@ -503,7 +488,6 @@ const Store = {
         }
     },
 
-    // Security Proxy
     security: {
         get() { 
             return Store.get(Store.KEYS.SECURITY) || Store.DEFAULTS.security;
