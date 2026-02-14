@@ -14,13 +14,11 @@ const LayoutComponents = {
         const user = Store.get(Store.KEYS.USER);
         const role = user?.role || 'guest';
         
-        let links = [
-            { id: 'sales', icon: 'cart', label: 'Ventas' }, // Siempre visible para todos
-            { id: 'notifications', icon: 'info', label: 'Notificaciones' },
-            { id: 'guide', icon: 'brain', label: 'Guía' }
-        ];
+        let links = [];
 
-        // Menú completo para Admins
+        // --- DEFINICIÓN DE MENÚS POR ROL ---
+
+        // 1. MENÚ COMPLETO (Administradores y Gerentes)
         if (role === 'Administrador' || role === 'Gerente') {
             links = [
                 { id: 'dashboard', icon: 'home', label: 'Inicio' },
@@ -39,16 +37,27 @@ const LayoutComponents = {
                 { id: 'security', icon: 'lock', label: 'Seguridad' },
                 { id: 'settings', icon: 'settings', label: 'Ajustes' }
             ];
-        } else if (role === 'Cajero') {
-            // Menú limitado para Cajeros
+        } 
+        // 2. MENÚ CAJERO (Limitado pero CON Guía)
+        else if (role === 'Cajero') {
             links = [
                 { id: 'sales', icon: 'cart', label: 'Ventas' },
-                { id: 'dashboard', icon: 'home', label: 'Resumen' }, // Dashboard limitado
+                { id: 'dashboard', icon: 'home', label: 'Resumen' },
                 { id: 'reports', icon: 'chart', label: 'Mis Ventas' },
                 { id: 'notifications', icon: 'info', label: 'Avisos' },
-                { id: 'guide', icon: 'brain', label: 'Ayuda' }
+                { id: 'guide', icon: 'brain', label: 'Ayuda' } // <--- AQUÍ ESTÁ EL CAMBIO
+            ];
+        } 
+        // 3. OTROS ROLES (Por defecto, siempre con Guía)
+        else {
+            links = [
+                { id: 'sales', icon: 'cart', label: 'Ventas' },
+                { id: 'guide', icon: 'brain', label: 'Guía' }, // <--- Visible para cualquiera
+                { id: 'notifications', icon: 'info', label: 'Notificaciones' }
             ];
         }
+
+        // --- RENDERIZADO DEL MENÚ ---
 
         if (isMobile) {
             return `
