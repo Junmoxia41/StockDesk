@@ -95,7 +95,8 @@ const ReportsPage = {
                                             </div>
                                             <div class="text-right">
                                                 <p class="font-bold text-orange-600 text-sm md:text-base">$${sale.total.toFixed(2)}</p>
-                                                <p class="text-xs text-slate-500">${sale.items.length} items</p>
+                                                <!-- CORRECCIÓN: Sumamos las cantidades (qty) de cada item -->
+                                                <p class="text-xs text-slate-500">${sale.items.reduce((acc, item) => acc + (item.qty || 0), 0)} items</p>
                                             </div>
                                         </div>
                                     `).join('')}
