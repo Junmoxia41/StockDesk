@@ -41,7 +41,8 @@ const Router = {
                 allRoles = [
                     { name: 'Administrador', permissions: ['all'] },
                     { name: 'Gerente', permissions: ['products', 'sales', 'reports', 'users'] },
-                    { name: 'Cajero', permissions: ['sales'] }
+                    // CORRECCIÓN: Añadimos 'reports' al cajero por defecto también
+                    { name: 'Cajero', permissions: ['sales', 'reports'] } 
                 ];
             }
             
@@ -53,7 +54,8 @@ const Router = {
                 'products': ['all', 'products', 'products.view'],
                 'inventory': ['all', 'inventory'],
                 'settings': ['all', 'settings'],
-                'reports': ['all', 'reports'],
+                // CORRECCIÓN: Añadimos 'sales' para que el cajero pueda ver 'reports'
+                'reports': ['all', 'reports', 'sales'], 
                 'users': ['all', 'users'],
                 'finance': ['all'],
                 'sales': ['all', 'sales']
@@ -73,7 +75,6 @@ const Router = {
                         Components.toast(`⛔ Acceso denegado: Rol ${roleName} sin permisos para esta sección.`, 'error', 4000);
                         
                         // Redirigir a zona segura
-                        // Intentamos ir a 'sales', si falla, a 'dashboard'
                         const safeRoute = (path !== 'sales') ? 'sales' : 'dashboard';
                         setTimeout(() => this.navigate(safeRoute), 100);
                     }
