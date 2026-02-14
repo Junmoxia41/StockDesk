@@ -13,7 +13,7 @@ const SettingsPage = {
         { code: 'COP', name: 'Peso Colombiano ($)' },
         { code: 'ARS', name: 'Peso Argentino ($)' },
         { code: 'CLP', name: 'Peso Chileno ($)' },
-        { code: 'PEN', name: 'Peso Chileno ($)' },
+        { code: 'PEN', name: 'Sol Peruano (S/)' },
         { code: 'VES', name: 'Bolívar Venezolano (Bs)' },
         { code: 'BRL', name: 'Real Brasileño (R$)' },
         { code: 'CAD', name: 'Dólar Canadiense ($)' },
@@ -24,10 +24,10 @@ const SettingsPage = {
         { code: 'INR', name: 'Rupia India (₹)' },
         { code: 'AUD', name: 'Dólar Australiano ($)' },
         { code: 'CHF', name: 'Franco Suizo (Fr)' },
-        { code: 'DOP', name: 'Peso Colombiano ($)' },
+        { code: 'DOP', name: 'Peso Dominicano ($)' },
         { code: 'GTQ', name: 'Quetzal Guatemalteco (Q)' },
-        { code: 'HNL', name: 'Quetzal Hondureño (L)' },
-        { code: 'NIO', name: 'Lempira Hondureño (L)' },
+        { code: 'HNL', name: 'Lempira Hondureño (L)' },
+        { code: 'NIO', name: 'Córdoba Nicaragüense (C$)' },
         { code: 'CRC', name: 'Colón Costarricense (₡)' },
         { code: 'PAB', name: 'Balboa Panameño (B/.)' },
         { code: 'PYG', name: 'Guaraní Paraguayo (₲)' },
@@ -41,6 +41,9 @@ const SettingsPage = {
         const sales = Store.sales.getAll();
         const device = Store.device.get();
         const aiApiKey = Store.get('stockdesk_ai_apikey') || '';
+        
+        // Obtener nombre de moneda actual para mostrar en el botón
+        const currentCurrency = this.currencies.find(c => c.code === settings.currency) || { name: 'Seleccionar...', code: '' };
 
         const content = `
             <div class="animate-fade-in max-w-3xl mx-auto">
@@ -79,22 +82,17 @@ const SettingsPage = {
                                    class="w-full px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:border-orange-500 transition">
                         </div>
                         
-                        <!-- Currency Selector with Search -->
+                        <!-- Currency Selector - New UI -->
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-2">Moneda Principal</label>
-                            <div class="relative">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                            <button onclick="SettingsPage.openCurrencyModal()" 
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 hover:border-orange-500 transition text-left flex items-center justify-between bg-slate-50 hover:bg-white">
+                                <span class="truncate">${currentCurrency.name}</span>
+                                <span class="text-slate-400 ml-2">
                                     ${Components.icons.search}
                                 </span>
-                                <input type="text" id="currency-search" placeholder="Buscar moneda (ej: Cuba, Euro)..." 
-                                       onkeyup="SettingsPage.filterCurrencies(this.value)"
-                                       class="w-full pl-12 pr-4 py-2.5 rounded-t-xl border border-slate-200 border-b-0 focus:border-orange-500 focus:ring-0">
-                                <select id="currency" onchange="SettingsPage.updateSetting('currency', this.value)" size="5"
-                                        class="w-full px-4 py-2 rounded-b-xl border border-slate-200 focus:border-orange-500 transition bg-slate-50">
-                                    ${this.renderCurrencyOptions(settings.currency)}
-                                </select>
-                            </div>
-                            <p class="text-xs text-slate-500 mt-1">Selecciona la moneda para tus reportes y ventas.</p>
+                            </button>
+                            <p class="text-xs text-slate-500 mt-1">Toca para seleccionar o buscar moneda.</p>
                         </div>
 
                         <div>
@@ -215,43 +213,77 @@ const SettingsPage = {
         return LayoutComponents.layout(content, 'settings');
     },
 
-    renderCurrencyOptions(selectedCurrency) {
-        // Sort: Selected first, then others
-        const sorted = [...this.currencies].sort((a, b) => {
-            if (a.code === selectedCurrency) return -1;
-            if (b.code === selectedCurrency) return 1;
-            return a.name.localeCompare(b.name);
-        });
+    // Nueva función: Modal de selección de moneda
+    openCurrencyModal() {
+        const settings = Store.settings.get();
+        const selectedCode = settings.currency;
 
-        return sorted.map(c => `
-            <option value="${c.code}" ${c.code === selectedCurrency ? 'selected' : ''}>
-                ${c.name}
-            </option>
+        Components.modal({
+            title: 'Seleccionar Moneda',
+            content: `
+                <div class="space-y-4">
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                            ${Components.icons.search}
+                        </span>
+                        <input type="text" id="currency-modal-search" placeholder="Buscar..." 
+                               oninput="SettingsPage.filterCurrencyModal(this.value)"
+                               class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500 text-sm">
+                    </div>
+                    <div id="currency-modal-list" class="max-h-64 overflow-y-auto space-y-1">
+                        ${this.renderCurrencyList(selectedCode)}
+                    </div>
+                </div>
+            `,
+            confirmText: 'Cancelar', // Botón secundario
+            cancelText: '', // Ocultar botón cancelar principal
+            onConfirm: () => true // Solo cerrar
+        });
+    },
+
+    renderCurrencyList(selectedCode, filter = '') {
+        const q = filter.toLowerCase();
+        const filtered = this.currencies.filter(c => 
+            c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+        );
+
+        if (filtered.length === 0) {
+            return '<p class="text-center text-slate-400 py-4">No se encontraron monedas</p>';
+        }
+
+        return filtered.map(c => `
+            <button onclick="SettingsPage.selectCurrency('${c.code}')" 
+                    class="w-full text-left p-3 rounded-lg flex items-center justify-between transition ${c.code === selectedCode ? 'bg-orange-50 border border-orange-200' : 'hover:bg-slate-50 border border-transparent'}">
+                <div>
+                    <p class="font-medium text-slate-900">${c.name}</p>
+                    <p class="text-xs text-slate-500">${c.code}</p>
+                </div>
+                ${c.code === selectedCode ? `<span class="text-orange-500">${Components.icons.check}</span>` : ''}
+            </button>
         `).join('');
     },
 
-    filterCurrencies(query) {
-        const q = query.toLowerCase();
-        const select = document.getElementById('currency');
-        if (!select) return;
+    filterCurrencyModal(query) {
+        const settings = Store.settings.get();
+        const listEl = document.getElementById('currency-modal-list');
+        if (listEl) {
+            listEl.innerHTML = this.renderCurrencyList(settings.currency, query);
+        }
+    },
 
-        select.innerHTML = this.currencies
-            .filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
-            .map(c => `<option value="${c.code}">${c.name}</option>`)
-            .join('');
+    selectCurrency(code) {
+        this.updateSetting('currency', code);
+        // Cerrar modal actual. Como usamos Components.modal, necesitamos cerrarlo manualmente o re-renderizar
+        const modal = document.getElementById('active-modal');
+        if (modal) modal.remove();
+        Router.navigate('settings'); // Refrescar vista
     },
 
     updateSetting(key, value) {
         const settings = Store.settings.get();
         settings[key] = value;
         Store.set(Store.KEYS.SETTINGS, settings);
-        
-        // If currency changed, re-render to update UI elsewhere or just toast
-        if (key === 'currency') {
-            Components.toast(`Moneda cambiada a ${value}`, 'success');
-        } else {
-            Components.toast('Configuración guardada', 'success');
-        }
+        Components.toast('Configuración guardada', 'success');
     },
 
     updateRetention(days) {
