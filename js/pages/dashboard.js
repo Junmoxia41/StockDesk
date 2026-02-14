@@ -92,7 +92,10 @@ const DashboardPage = {
                                         <tr class="border-b border-slate-50 table-row-hover">
                                             <td class="py-3 text-xs md:text-sm text-slate-600">#${s.id.toString().slice(-6)}</td>
                                             <td class="py-3 text-xs md:text-sm text-slate-600">${new Date(s.date).toLocaleString('es')}</td>
-                                            <td class="py-3 text-xs md:text-sm text-slate-600">${s.items.length} productos</td>
+                                            <td class="py-3 text-xs md:text-sm text-slate-600">
+                                                <!-- CORRECCIÓN: Suma de cantidades -->
+                                                ${s.items.reduce((acc, item) => acc + (item.qty || 0), 0)} productos
+                                            </td>
                                             <td class="py-3 text-xs md:text-sm font-semibold text-slate-900 text-right">$${s.total.toFixed(2)}</td>
                                         </tr>
                                     `).join('')}
