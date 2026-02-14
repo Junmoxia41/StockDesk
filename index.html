@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stock Desk - Gestión de Inventario</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <meta name="theme-color" content="#f97316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <!-- SECURITY LAYER: Anti-Bot & Anti-AI -->
+    <meta name="robots" content="noindex, nofollow, noai, noimageai">
+</head>
+<body class="font-sans bg-slate-50 text-slate-900">
+    <!-- App Container -->
+    <div id="app"></div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+    
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <!-- Core Modules -->
+    <script src="js/store.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/components-layout.js"></script>
+    
+    <!-- Page Modules -->
+    <script src="js/pages/device-setup.js"></script>
+    <script src="js/pages/splash.js"></script>
+    <script src="js/pages/landing.js"></script>
+    <script src="js/pages/login.js"></script>
+    <script src="js/pages/dashboard.js"></script>
+    <script src="js/pages/catalog.js"></script>
+    <script src="js/pages/products.js"></script>
+    <script src="js/pages/sales.js"></script>
+    <script src="js/pages/reports.js"></script>
+    <script src="js/pages/settings.js"></script>
+    
+    <!-- Inventory Advanced Modules -->
+    <script src="js/pages/inventory.js"></script>
+    <script src="js/modules/inventory-warehouses.js"></script>
+    <script src="js/modules/inventory-transfers.js"></script>
+    <script src="js/modules/inventory-kardex.js"></script>
+    <script src="js/modules/inventory-kits.js"></script>
+    
+    <!-- Finance Modules -->
+    <script src="js/pages/finance.js"></script>
+    <script src="js/modules/finance-cashflow.js"></script>
+    <script src="js/modules/finance-ledger.js"></script>
+    <script src="js/modules/finance-payroll.js"></script>
+    <script src="js/modules/finance-budgets.js"></script>
+    
+    <!-- Security Modules -->
+    <script src="js/pages/security.js"></script>
+    <script src="js/modules/security-auth.js"></script>
+    <script src="js/modules/security-access.js"></script>
+    <script src="js/modules/security-protection.js"></script>
+    <script src="js/modules/security-threats.js"></script>
+    <script src="js/modules/security-backup.js"></script>
+    <script src="js/modules/security-logs.js"></script>
+    
+    <!-- Dashboard Modules -->
+    <script src="js/pages/dashboards.js"></script>
+    <script src="js/modules/dashboard-widgets.js"></script>
+    <script src="js/modules/dashboard-charts.js"></script>
+    
+    <!-- AI Assistant Module -->
+    <script src="js/modules/ai-assistant.js"></script>
+    <script src="js/modules/ai-chat.js"></script>
+    <script src="js/modules/ai-advanced.js"></script>
+    
+    <!-- Guide Modules -->
+    <script src="js/modules/guide-content.js"></script>
+    <script src="js/pages/guide.js"></script>
+
+    <!-- Customization Modules -->
+    <script src="js/pages/customization.js"></script>
+    <script src="js/modules/customization-themes.js"></script>
+    <script src="js/modules/customization-tickets.js"></script>
+    
+    <!-- Users Management Modules -->
+    <script src="js/pages/users.js"></script>
+    <script src="js/modules/users-management.js"></script>
+    <script src="js/modules/users-shifts.js"></script>
+    
+    <!-- Notifications Modules -->
+    <script src="js/pages/notifications.js"></script>
+    <script src="js/modules/notifications-center.js"></script>
+    <script src="js/modules/notifications-alerts.js"></script>
+    
+    <!-- Suppliers Modules -->
+    <script src="js/pages/suppliers.js"></script>
+    <script src="js/modules/suppliers-directory.js"></script>
+    <script src="js/modules/suppliers-orders.js"></script>
+
+    <!-- Donations Module -->
+    <script src="js/modules/donations.js"></script>
+    
+    <!-- App Entry Point -->
+    <script src="js/app.js"></script>
+    
+    <!-- AI Container -->
+    <div id="ai-container"></div>
+
+    <!-- Basic Security Layer -->
+    <script>
+        (function() {
+            // Deshabilitar Clic Derecho
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+
+            // Deshabilitar Atajos de Teclado (F12, DevTools, Ver Fuente)
+            document.addEventListener('keydown', function(e) {
+                // F12
+                if (e.key === 'F12') {
+                    e.preventDefault();
+                    return false;
+                }
+                // Ctrl + Shift + I (DevTools)
+                if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+                    e.preventDefault();
+                    return false;
+                }
+                // Ctrl + Shift + J (Consola)
+                if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+                    e.preventDefault();
+                    return false;
+                }
+                // Ctrl + U (Ver Fuente)
+                if (e.ctrlKey && e.key === 'u') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Deshabilitar Selección de Texto (Excepto Inputs y Textareas para poder escribir)
+            document.addEventListener('selectstart', function(e) {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
