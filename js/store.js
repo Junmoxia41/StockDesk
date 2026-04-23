@@ -3,7 +3,6 @@
  * Stock Desk Application
  *
  * ROBUST VERSION: Includes Deep Merging and Safe Defaults
- * to prevent crashes when upgrading versions.
  */
 const Store = {
   KEYS: {
@@ -26,7 +25,7 @@ const Store = {
     SECURITY_LOGS: 'stockdesk_security_logs',
     SECURITY_BACKUPS: 'stockdesk_backups',
     SECURITY_SESSIONS: 'stockdesk_sessions',
-    // New Modular Keys
+
     NOTIFICATIONS: 'stockdesk_notifications',
     CHANNELS: 'stockdesk_channels',
     ALERT_CONFIG: 'stockdesk_alert_config',
@@ -42,13 +41,12 @@ const Store = {
     SHIFTS: 'stockdesk_shifts',
     REGISTERS: 'stockdesk_registers',
     AUDIT_LOGS: 'stockdesk_audit_logs',
-    // Security Sub-modules
+
     SECURITY_ACCESS: 'stockdesk_security_access',
     SECURITY_PROTECTION: 'stockdesk_security_protection',
     SECURITY_THREATS: 'stockdesk_security_threats'
   },
 
-  // Master Default State - The "Blueprint"
   DEFAULTS: {
     settings: {
       businessName: 'Mi Negocio',
@@ -57,7 +55,9 @@ const Store = {
       logRetention: 30,
       logo: null
     },
+
     warehouses: [{ id: 1, name: 'Almacén Principal', location: 'Principal', isDefault: true }],
+
     security: {
       twoFactorEnabled: false,
       lockOnFailure: true,
@@ -67,6 +67,7 @@ const Store = {
       backupRetention: 30,
       sessionTimeout: 60
     },
+
     security_access: {
       ipWhitelistEnabled: false,
       ips: [],
@@ -75,6 +76,7 @@ const Store = {
       endTime: '18:00',
       geoBlockEnabled: false
     },
+
     security_threats: {
       bruteForceProtection: true,
       maxAttempts: 5,
@@ -82,51 +84,57 @@ const Store = {
       sqlInjectionCheck: false,
       xssProtection: true
     },
+
     security_protection: {
       dataMasking: false,
       secureDeletion: false,
       encryptionLevel: 'standard'
     },
+
     channels: { email: false, sms: false, whatsapp: false, push: true },
+
     alert_config: {
       lowStock: { enabled: false, threshold: 10 },
       dailySummary: { enabled: false, time: '18:00' },
       newSale: { enabled: false, minAmount: 100 },
       pendingPayments: { enabled: false }
     },
+
+    // FIX: defaults completos de tickets + autoPrint + showCustomer
     ticket_config: {
       showLogo: true,
       showDate: true,
       showCashier: true,
+      showCustomer: false,
+      autoPrint: false,
       header: 'Stock Desk',
       footer: 'Gracias por su compra',
-      width: '80mm'
+      width: '80mm' // recomendado por defecto
     }
   },
 
   init() {
     console.log('[PKG] Store: Initializing Safe Load...');
 
-    // 1. Initialize basic keys with [] if missing
-    // CORRECCIÓN: Excluimos ROLES para que no se inicialice vacío []
+    // Inicializar keys listas como [] si faltan (excepto objetos de config)
     Object.values(this.KEYS).forEach(key => {
       if (!localStorage.getItem(key)) {
         const isExcluded = [
-          'stockdesk_settings',
-          'stockdesk_security',
-          'stockdesk_security_access',
-          'stockdesk_alert_config',
-          this.KEYS.ROLES // <-- corregido
+          this.KEYS.SETTINGS,
+          this.KEYS.SECURITY,
+          this.KEYS.SECURITY_ACCESS,
+          this.KEYS.ALERT_CONFIG,
+          this.KEYS.TICKET_CONFIG,
+          this.KEYS.ROLES
         ].includes(key);
 
-        const isList = !isExcluded;
-        if (isList && !this._getDefaultForKey(key)) {
+        if (!isExcluded && !this._getDefaultForKey(key)) {
           this.set(key, []);
         }
       }
     });
 
-    // 2. Perform Deep Merge for Configuration Objects (y defaults para arrays)
+    // Safe load defaults
     this._safeLoad(this.KEYS.SETTINGS, this.DEFAULTS.settings);
     this._safeLoad(this.KEYS.WAREHOUSES, this.DEFAULTS.warehouses);
     this._safeLoad(this.KEYS.SECURITY, this.DEFAULTS.security);
@@ -137,30 +145,25 @@ const Store = {
     this._safeLoad(this.KEYS.ALERT_CONFIG, this.DEFAULTS.alert_config);
     this._safeLoad(this.KEYS.TICKET_CONFIG, this.DEFAULTS.ticket_config);
 
-    // Clean old logs on startup
     this.cleanupLogs();
-
     console.log('[OK] Store: Initialization Complete.');
   },
 
-  // Helper: Get default value if defined in DEFAULTS
   _getDefaultForKey(storageKey) {
     if (storageKey === this.KEYS.SETTINGS) return this.DEFAULTS.settings;
     if (storageKey === this.KEYS.SECURITY) return this.DEFAULTS.security;
     return null;
   },
 
-  // Helper: Deep Merge strategy + FIX para arrays vacíos
+  // FIX: safeLoad arreglado para arrays vacíos
   _safeLoad(key, defaults) {
     const current = this.get(key);
 
-    // Si no existe nada, aplicar defaults
     if (current === null || current === undefined) {
       this.set(key, defaults);
       return;
     }
 
-    // FIX: Si defaults es array, y current está vacío o no es array, aplicar defaults
     if (Array.isArray(defaults)) {
       if (!Array.isArray(current) || current.length === 0) {
         this.set(key, defaults);
@@ -168,7 +171,6 @@ const Store = {
       return;
     }
 
-    // Si defaults es objeto, hacer merge
     if (typeof defaults === 'object' && !Array.isArray(defaults)) {
       const merged = this._deepMerge(defaults, current);
       this.set(key, merged);
@@ -180,13 +182,10 @@ const Store = {
     if (isObject(target) && isObject(source)) {
       Object.keys(source).forEach(key => {
         if (isObject(source[key])) {
-          if (!(key in target)) {
-            Object.assign(output, { [key]: source[key] });
-          } else {
-            output[key] = this._deepMerge(target[key], source[key]);
-          }
+          if (!(key in target)) output[key] = source[key];
+          else output[key] = this._deepMerge(target[key], source[key]);
         } else {
-          Object.assign(output, { [key]: source[key] });
+          output[key] = source[key];
         }
       });
     }
@@ -200,19 +199,11 @@ const Store = {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
-    const logKeys = [
-      this.KEYS.SECURITY_LOGS,
-      this.KEYS.AUDIT_LOGS
-    ];
-
-    logKeys.forEach(key => {
+    [this.KEYS.SECURITY_LOGS, this.KEYS.AUDIT_LOGS].forEach(key => {
       const logs = this.get(key) || [];
       if (Array.isArray(logs) && logs.length > 0) {
         const cleanLogs = logs.filter(l => new Date(l.date) >= cutoffDate);
-        if (logs.length !== cleanLogs.length) {
-          this.set(key, cleanLogs);
-          console.log(` Cleaned ${logs.length - cleanLogs.length} old logs from ${key}`);
-        }
+        if (cleanLogs.length !== logs.length) this.set(key, cleanLogs);
       }
     });
   },
@@ -234,7 +225,6 @@ const Store = {
     } catch (e) {
       console.error(`Store.set error (${key}):`, e);
       if (e.name === 'QuotaExceededError') {
-        // FIX: Components puede no estar cargado aún (store.js se carga antes)
         if (typeof Components !== 'undefined' && Components.toast) {
           Components.toast('[WARN] Memoria llena. Borra historial antiguo.', 'warning', 5000);
         } else {
@@ -245,7 +235,6 @@ const Store = {
     }
   },
 
-  // --- Specific Module Accessors (Proxies) ---
   device: {
     get() { return Store.get(Store.KEYS.DEVICE); },
     set(device) { Store.set(Store.KEYS.DEVICE, device); }
@@ -277,7 +266,6 @@ const Store = {
       products.push(newProduct);
       Store.set(Store.KEYS.PRODUCTS, products);
       Store.kardex.add(newId, 'entrada', product.stock || 0, 'Stock inicial');
-
       return newProduct;
     },
 
@@ -299,8 +287,7 @@ const Store = {
     },
 
     delete(id) {
-      const products = this.getAll().filter(p => p.id !== id);
-      Store.set(Store.KEYS.PRODUCTS, products);
+      Store.set(Store.KEYS.PRODUCTS, this.getAll().filter(p => p.id !== id));
       return true;
     },
 
@@ -317,10 +304,10 @@ const Store = {
     },
 
     search(query) {
-      const q = query.toLowerCase();
+      const q = (query || '').toLowerCase();
       return this.getAll().filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q) ||
         (p.barcode && p.barcode.includes(q)) ||
         (p.sku && p.sku.toLowerCase().includes(q))
       );
@@ -351,8 +338,7 @@ const Store = {
     },
 
     delete(id) {
-      const warehouses = this.getAll().filter(w => w.id !== id);
-      Store.set(Store.KEYS.WAREHOUSES, warehouses);
+      Store.set(Store.KEYS.WAREHOUSES, this.getAll().filter(w => w.id !== id));
       return true;
     }
   },
@@ -361,12 +347,7 @@ const Store = {
     getAll() { return Store.get(Store.KEYS.TRANSFERS) || []; },
     add(transfer) {
       const transfers = this.getAll();
-      const newTransfer = {
-        id: Date.now(),
-        date: new Date().toISOString(),
-        status: 'completed',
-        ...transfer
-      };
+      const newTransfer = { id: Date.now(), date: new Date().toISOString(), status: 'completed', ...transfer };
       transfers.push(newTransfer);
       Store.set(Store.KEYS.TRANSFERS, transfers);
       return newTransfer;
@@ -412,14 +393,14 @@ const Store = {
       return { ...kit, id: newId };
     },
     delete(id) {
-      const kits = this.getAll().filter(k => k.id !== id);
-      Store.set(Store.KEYS.KITS, kits);
+      Store.set(Store.KEYS.KITS, this.getAll().filter(k => k.id !== id));
       return true;
     }
   },
 
   sales: {
     getAll() { return Store.get(Store.KEYS.SALES) || []; },
+    getById(id) { return this.getAll().find(s => s.id === id); },
 
     add(sale) {
       const sales = this.getAll();
@@ -427,12 +408,21 @@ const Store = {
       sales.push(newSale);
       Store.set(Store.KEYS.SALES, sales);
 
+      // Contabilidad
       Store.transactions.add({
         type: 'income',
         category: 'Ventas',
         amount: sale.total,
         description: `Venta #${newSale.id}`
       });
+
+      // FIX: sumar ventas al turno activo (si existe)
+      const shifts = Store.get(Store.KEYS.SHIFTS) || [];
+      const openIdx = shifts.findIndex(s => s.status === 'open');
+      if (openIdx !== -1) {
+        shifts[openIdx].sales = (shifts[openIdx].sales || 0) + (sale.total || 0);
+        Store.set(Store.KEYS.SHIFTS, shifts);
+      }
 
       return newSale;
     },
@@ -541,9 +531,7 @@ const Store = {
   },
 
   security: {
-    get() {
-      return Store.get(Store.KEYS.SECURITY) || Store.DEFAULTS.security;
-    },
+    get() { return Store.get(Store.KEYS.SECURITY) || Store.DEFAULTS.security; },
     update(data) {
       const security = this.get();
       Store.set(Store.KEYS.SECURITY, { ...security, ...data });
@@ -575,8 +563,7 @@ const Store = {
     },
 
     deleteBackup(id) {
-      const backups = this.getBackups().filter(b => b.id !== id);
-      Store.set(Store.KEYS.SECURITY_BACKUPS, backups);
+      Store.set(Store.KEYS.SECURITY_BACKUPS, this.getBackups().filter(b => b.id !== id));
     },
 
     getSessions() {
@@ -586,18 +573,15 @@ const Store = {
     },
 
     removeSession(id) {
-      const sessions = this.getSessions().filter(s => s.id !== id);
-      Store.set(Store.KEYS.SECURITY_SESSIONS, sessions);
+      Store.set(Store.KEYS.SECURITY_SESSIONS, this.getSessions().filter(s => s.id !== id));
     },
 
     closeAllSessions() { Store.set(Store.KEYS.SECURITY_SESSIONS, []); }
   }
 };
 
-// Utility for deep merge check
 function isObject(item) {
   return (item && typeof item === 'object' && !Array.isArray(item));
 }
 
-// NOTA: NO llamar Store.init() aquí.
-// App.init() ya lo hace una sola vez.
+// NOTA: No llamar Store.init() aquí. App.init() lo hace.
