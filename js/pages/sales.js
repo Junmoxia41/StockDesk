@@ -1,5 +1,5 @@
 /**
- * Sales Page - Point of Sale (POS)
+ * Sales Page - Point of Sale (POS) - Pro
  * Stock Desk Application
  */
 const SalesPage = {
@@ -25,6 +25,10 @@ const SalesPage = {
     return Array.from(set);
   },
 
+  rerender() {
+    Router.navigate('sales', {}, { push: false });
+  },
+
   render() {
     const products = this.searchQuery ? Store.products.search(this.searchQuery) : Store.products.getAll();
     const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -40,17 +44,27 @@ const SalesPage = {
     return LayoutComponents.layout(content, 'sales');
   },
 
-  rerender() {
-    Router.navigate('sales', {}, { push: false });
+  renderHeaderActions() {
+    return `
+<div class="flex gap-2">
+  <button onclick="SalesPage.showRecentSalesModal()"
+    class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm flex items-center gap-2">
+    ${Components.icons.clipboard} Ventas recientes
+  </button>
+</div>`;
   },
 
   renderDesktop(products, total, canDiscount) {
     return `
 <div class="animate-fade-in h-[calc(100vh-4rem)]">
-  <div class="mb-4">
-    <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Punto de Venta</h1>
-    <p class="text-slate-500 text-sm">Procesa ventas rápidamente</p>
+  <div class="flex items-start justify-between gap-3 mb-4">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Punto de Venta</h1>
+      <p class="text-slate-500 text-sm">Procesa ventas rápidamente</p>
+    </div>
+    ${this.renderHeaderActions()}
   </div>
+
   <div class="grid lg:grid-cols-2 gap-4 h-[calc(100%-5rem)]">
     ${this.renderProductsPanel(products)}
     ${this.renderCartPanel(total, canDiscount)}
@@ -62,8 +76,12 @@ const SalesPage = {
   renderMobile(products, total, canDiscount) {
     return `
 <div class="animate-fade-in pb-32">
-  <div class="mb-4">
+  <div class="flex items-center justify-between mb-4">
     <h1 class="text-2xl font-bold text-slate-900">Punto de Venta</h1>
+    <button onclick="SalesPage.showRecentSalesModal()"
+      class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm">
+      Recientes
+    </button>
   </div>
 
   ${this.renderProductsPanel(products)}
@@ -151,14 +169,17 @@ const SalesPage = {
           <h4 class="font-medium text-slate-900 text-sm truncate">${item.name}</h4>
           <p class="text-xs text-slate-500">$${item.price.toFixed(2)} c/u</p>
         </div>
+
         <div class="flex items-center gap-1 md:gap-2">
           <button onclick="SalesPage.updateQuantity(${index}, -1)" class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-100 transition">${Components.icons.minus}</button>
           <span class="w-6 md:w-8 text-center font-semibold text-sm">${item.quantity}</span>
           <button onclick="SalesPage.updateQuantity(${index}, 1)" class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-100 transition">${Components.icons.plus.replace('w-5 h-5', 'w-4 h-4')}</button>
         </div>
+
         <div class="text-right w-16 md:w-20">
           <p class="font-bold text-slate-900 text-sm">$${(item.price * item.quantity).toFixed(2)}</p>
         </div>
+
         <button onclick="SalesPage.removeFromCart(${index})" class="p-1 text-slate-400 hover:text-red-500 transition">${Components.icons.close.replace('w-6 h-6', 'w-5 h-5')}</button>
       </div>
       `).join('')}
@@ -224,7 +245,6 @@ const SalesPage = {
     } else {
       this.cart.push({ ...product, quantity: 1 });
     }
-    Components.toast(`${product.name} agregado`, 'success');
     this.rerender();
   },
 
@@ -232,10 +252,8 @@ const SalesPage = {
     const item = this.cart[index];
     const product = Store.products.getById(item.id);
     const newQty = item.quantity + delta;
-
     if (newQty <= 0) return this.removeFromCart(index);
     if (newQty > product.stock) return Components.toast('Stock insuficiente', 'warning');
-
     this.cart[index].quantity = newQty;
     this.rerender();
   },
@@ -320,8 +338,8 @@ const SalesPage = {
         });
 
         this.cart = [];
-        Components.toast('Venta realizada con éxito', 'success');
         this.rerender();
+        Components.toast('Venta realizada', 'success');
 
         if (window.TicketPrinter) {
           if (ticketCfg.autoPrint) {
@@ -329,7 +347,13 @@ const SalesPage = {
           } else {
             Components.modal({
               title: 'Ticket',
-              content: `<p>¿Deseas imprimir el ticket de esta venta?</p>`,
+              content: `
+<p class="text-slate-600 text-sm mb-2">¿Deseas imprimir el ticket de esta venta?</p>
+<div class="bg-slate-50 rounded-lg p-3 text-sm">
+  <div class="flex justify-between"><span>Ticket</span><span>#${String(sale.id).slice(-6)}</span></div>
+  <div class="flex justify-between font-bold text-orange-600"><span>Total</span><span>$${sale.total.toFixed(2)}</span></div>
+</div>
+`,
               confirmText: 'Imprimir',
               cancelText: 'No imprimir',
               onConfirm: () => TicketPrinter.printSale(sale, { auto: true })
@@ -338,6 +362,48 @@ const SalesPage = {
         }
       }
     });
+  },
+
+  showRecentSalesModal() {
+    const sales = Store.sales.getAll().slice(-15).reverse();
+    if (!sales.length) {
+      Components.toast('No hay ventas aún', 'info');
+      return;
+    }
+
+    Components.modal({
+      title: 'Ventas recientes',
+      content: `
+<div class="space-y-2 max-h-64 overflow-y-auto">
+  ${sales.map(s => `
+  <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+    <div>
+      <p class="text-sm font-semibold text-slate-900">#${String(s.id).slice(-6)} <span class="text-xs text-slate-400">(${new Date(s.date).toLocaleString('es')})</span></p>
+      <p class="text-xs text-slate-500">${(s.customer || 'Público General')} • ${(s.items||[]).reduce((a,i)=>a+(i.qty||0),0)} items</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="font-bold text-orange-600">$${Number(s.total||0).toFixed(2)}</span>
+      <button onclick="SalesPage.printSaleById(${s.id})" class="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg" title="Imprimir">
+        ${Components.icons.receipt}
+      </button>
+    </div>
+  </div>
+  `).join('')}
+</div>
+`,
+      confirmText: 'Cerrar',
+      cancelText: ''
+    });
+  },
+
+  printSaleById(id) {
+    const sale = Store.sales.getAll().find(s => s.id === id);
+    if (!sale) return;
+    if (!window.TicketPrinter) {
+      Components.toast('TicketPrinter no está cargado', 'error');
+      return;
+    }
+    TicketPrinter.printSale(sale, { auto: true });
   }
 };
 
