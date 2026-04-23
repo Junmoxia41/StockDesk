@@ -1,5 +1,5 @@
 /**
- * TicketPrinter - impresión profesional adaptable (58mm / 80mm / A4)
+ * TicketPrinter - Ticket profesional con Pago/Cambio
  * Stock Desk Application (static / GitHub Pages)
  */
 window.TicketPrinter = {
@@ -14,7 +14,8 @@ window.TicketPrinter = {
       showCashier: cfg.showCashier ?? true,
       showCustomer: cfg.showCustomer ?? false,
       autoPrint: cfg.autoPrint ?? false,
-      showUnitPrice: cfg.showUnitPrice ?? true // NUEVO
+      showUnitPrice: cfg.showUnitPrice ?? true,
+      showPayment: cfg.showPayment ?? true
     };
   },
 
@@ -37,6 +38,11 @@ window.TicketPrinter = {
       .replaceAll("'", '&#039;');
   },
 
+  _paymentLabel(method) {
+    const map = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', other: 'Otro' };
+    return map[method] || 'Efectivo';
+  },
+
   buildTicketHTML(sale, options = {}) {
     const settings = Store.settings.get();
     const user = Store.get(Store.KEYS.USER) || {};
@@ -45,7 +51,6 @@ window.TicketPrinter = {
     const width = options.width || cfg.width; // 58mm | 80mm | A4
     const is58 = width === '58mm';
     const is80 = width === '80mm';
-    const isA4 = width === 'A4';
 
     const pageWidthCss = is58 ? '58mm' : is80 ? '80mm' : '210mm';
     const baseFont = is58 ? 10 : is80 ? 11 : 12;
@@ -72,9 +77,24 @@ window.TicketPrinter = {
     const discount = Number(sale.discount ?? 0);
     const total = Number(sale.total ?? Math.max(0, subtotal - discount));
 
-    // 58mm: layout por líneas
+    // Pago/cambio
+    const method = sale.paymentMethod || 'cash';
+    const paidAmount = Number(sale.paidAmount ?? total);
+    const change = Number(sale.change ?? Math.max(0, paidAmount - total));
+
+    const paymentHTML = cfg.showPayment ? `
+<div class="line"></div>
+<div class="row"><span>Pago</span><span class="r">${this._paymentLabel(method)}</span></div>
+${method === 'cash' ? `
+  <div class="row"><span>Recibido</span><span class="r">${this.currency(paidAmount)}</span></div>
+  <div class="row"><span>Cambio</span><span class="r">${this.currency(change)}</span></div>
+` : ''}
+` : '';
+
+    // Items
+    let itemsHTML = '';
     if (is58) {
-      const itemsHTML58 = items.map(i => {
+      itemsHTML = items.map(i => {
         const name = this._escapeHtml(i.name || '').trim();
         const qty = Number(i.qty || 0);
         const price = Number(i.price || 0);
@@ -89,71 +109,41 @@ window.TicketPrinter = {
 </div>
 `;
       }).join('');
+    } else {
+      const showUnitPrice = !!cfg.showUnitPrice;
+      const tableHeader = showUnitPrice
+        ? `<tr><th>Producto</th><th class="r">Cant</th><th class="r">P.Unit</th><th class="r">Importe</th></tr>`
+        : `<tr><th>Producto</th><th class="r">Cant</th><th class="r">Importe</th></tr>`;
 
-      return this._wrapHTML({
-        pageWidthCss, baseFont, titleFont, logoHTML,
-        header: cfg.header || settings.businessName || 'Mi Negocio',
-        businessName: settings.businessName || '',
-        ticketId: String(sale.id).slice(-6),
-        dateHTML, cashierHTML, customerHTML,
-        itemsHTML: itemsHTML58,
-        subtotal, discount, total,
-        footer: cfg.footer || 'Gracias por su compra',
-        autoPrint: !!options.autoPrint,
-        autoClose: !!options.autoClose
-      });
-    }
-
-    // 80mm / A4: tabla, opcionalmente columna precio unitario
-    const showUnitPrice = !!cfg.showUnitPrice;
-    const tableHeader = showUnitPrice
-      ? `<tr><th>Producto</th><th class="r">Cant</th><th class="r">P.Unit</th><th class="r">Importe</th></tr>`
-      : `<tr><th>Producto</th><th class="r">Cant</th><th class="r">Importe</th></tr>`;
-
-    const rows = items.map(i => {
-      const name = this._escapeHtml(i.name || '');
-      const qty = Number(i.qty || 0);
-      const price = Number(i.price || 0);
-      const lineTotal = price * qty;
-
-      return showUnitPrice
-        ? `
+      const rows = items.map(i => {
+        const name = this._escapeHtml(i.name || '');
+        const qty = Number(i.qty || 0);
+        const price = Number(i.price || 0);
+        const lineTotal = price * qty;
+        return showUnitPrice
+          ? `
 <tr>
   <td class="wrap">${name}</td>
   <td class="r nowrap">${qty}</td>
   <td class="r nowrap">${this.currency(price)}</td>
   <td class="r nowrap">${this.currency(lineTotal)}</td>
 </tr>`
-        : `
+          : `
 <tr>
   <td class="wrap">${name}</td>
   <td class="r nowrap">${qty}</td>
   <td class="r nowrap">${this.currency(lineTotal)}</td>
 </tr>`;
-    }).join('');
+      }).join('');
 
-    const itemsHTMLTable = `
+      itemsHTML = `
 <table>
   <thead>${tableHeader}</thead>
   <tbody>${rows}</tbody>
 </table>
 `;
+    }
 
-    return this._wrapHTML({
-      pageWidthCss, baseFont, titleFont, logoHTML,
-      header: cfg.header || settings.businessName || 'Mi Negocio',
-      businessName: settings.businessName || '',
-      ticketId: String(sale.id).slice(-6),
-      dateHTML, cashierHTML, customerHTML,
-      itemsHTML: itemsHTMLTable,
-      subtotal, discount, total,
-      footer: cfg.footer || 'Gracias por su compra',
-      autoPrint: !!options.autoPrint,
-      autoClose: !!options.autoClose
-    });
-  },
-
-  _wrapHTML({ pageWidthCss, baseFont, titleFont, logoHTML, header, businessName, ticketId, dateHTML, cashierHTML, customerHTML, itemsHTML, subtotal, discount, total, footer, autoPrint, autoClose }) {
     return `
 <!doctype html>
 <html lang="es">
@@ -170,11 +160,7 @@ window.TicketPrinter = {
     font-size: ${baseFont}px;
     line-height: 1.25;
   }
-  .ticket {
-    width: ${pageWidthCss};
-    padding: 10px 10px;
-    box-sizing: border-box;
-  }
+  .ticket { width: ${pageWidthCss}; padding: 10px 10px; box-sizing: border-box; }
   .center { text-align: center; }
   .logo { max-width: 130px; max-height: 80px; object-fit: contain; display:block; margin: 0 auto 6px; }
   h1 { font-size: ${titleFont}px; margin: 0 0 4px; }
@@ -191,11 +177,9 @@ window.TicketPrinter = {
   .totals { margin-top: 6px; }
   .big { font-weight: 800; font-size: ${baseFont + 2}px; }
   .footer { margin-top: 10px; font-size: ${baseFont}px; }
-  /* Layout especial 58mm: evita corte y reorganiza */
   .item58 { margin: 6px 0; }
   .item58 .name { font-weight: 600; word-break: break-word; overflow-wrap: anywhere; }
   .item58 .meta { display:flex; justify-content: space-between; gap: 8px; margin-top: 2px; }
-
   @media print {
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body { background: #fff !important; }
@@ -206,13 +190,13 @@ window.TicketPrinter = {
   <div class="ticket">
     <div class="center">
       ${logoHTML}
-      <h1>${this._escapeHtml(header)}</h1>
-      ${businessName ? `<div class="muted">${this._escapeHtml(businessName)}</div>` : ''}
+      <h1>${this._escapeHtml(cfg.header || settings.businessName || 'Mi Negocio')}</h1>
+      ${settings.businessName ? `<div class="muted">${this._escapeHtml(settings.businessName)}</div>` : ''}
     </div>
 
     <div class="line"></div>
 
-    <div class="row"><span>Ticket</span><span class="r nowrap">#${ticketId}</span></div>
+    <div class="row"><span>Ticket</span><span class="r nowrap">#${String(sale.id).slice(-6)}</span></div>
     ${dateHTML}
     ${cashierHTML}
     ${customerHTML}
@@ -229,24 +213,20 @@ window.TicketPrinter = {
       <div class="row big"><span>TOTAL</span><span class="r">${this.currency(total)}</span></div>
     </div>
 
+    ${paymentHTML}
+
     <div class="line"></div>
-    <div class="center footer">${this._escapeHtml(footer)}</div>
+    <div class="center footer">${this._escapeHtml(cfg.footer || 'Gracias por su compra')}</div>
   </div>
 
 <script>
-  const AUTO_PRINT = ${autoPrint ? 'true' : 'false'};
-  const AUTO_CLOSE = ${autoClose ? 'true' : 'false'};
+  const AUTO_PRINT = ${options.autoPrint ? 'true' : 'false'};
+  const AUTO_CLOSE = ${options.autoClose ? 'true' : 'false'};
 
   if (AUTO_PRINT) {
-    setTimeout(() => {
-      window.focus();
-      window.print();
-    }, 250);
-
+    setTimeout(() => { window.focus(); window.print(); }, 250);
     window.onafterprint = () => {
-      if (AUTO_CLOSE) {
-        setTimeout(() => { try { window.close(); } catch(e) {} }, 300);
-      }
+      if (AUTO_CLOSE) setTimeout(() => { try { window.close(); } catch(e) {} }, 300);
     };
   }
 </script>
@@ -279,29 +259,21 @@ window.TicketPrinter = {
     if (!auto) w.focus();
   },
 
-  previewSale(sale) {
-    const cfg = this.getConfig();
-    const html = this.buildTicketHTML(sale, {
-      autoPrint: false,
-      autoClose: false,
-      width: cfg.width
-    });
-    const w = this.openTicketWindow(html);
-    if (w) w.focus();
-  },
-
   printTest() {
     const dummy = {
       id: Date.now(),
       date: new Date().toISOString(),
       customer: 'Público General',
       items: [
-        { name: 'Producto con nombre largo para probar que NO se corte en 58mm y que se reorganice', qty: 2, price: 10 },
+        { name: 'Producto largo para probar pago y no corte en 58mm', qty: 2, price: 10 },
         { name: 'Otro producto', qty: 1, price: 5.5 }
       ],
       subtotal: 25.5,
       discount: 0,
-      total: 25.5
+      total: 25.5,
+      paymentMethod: 'cash',
+      paidAmount: 30,
+      change: 4.5
     };
     this.printSale(dummy, { auto: true });
   }
