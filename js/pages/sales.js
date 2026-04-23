@@ -1,5 +1,5 @@
 /**
- * Sales Page - Point of Sale (POS) - Pro
+ * Sales Page - Point of Sale (POS) - Pro (Pago + Cambio + Reimpresión)
  * Stock Desk Application
  */
 const SalesPage = {
@@ -21,7 +21,7 @@ const SalesPage = {
     const perms = role?.permissions || [];
     const set = new Set(perms);
     if (set.has('all')) return ['all'];
-    if (set.has('sales')) set.add('sales.discount');
+    if (set.has('sales')) set.add('sales.discount'); // compat
     return Array.from(set);
   },
 
@@ -304,6 +304,12 @@ const SalesPage = {
     if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
   },
 
+  toggleCashFields(method) {
+    const cashBox = document.getElementById('cash-fields');
+    if (!cashBox) return;
+    cashBox.classList.toggle('hidden', method !== 'cash');
+  },
+
   checkout(canDiscount = true) {
     if (this.cart.length === 0) return;
 
@@ -317,30 +323,74 @@ const SalesPage = {
     Components.modal({
       title: 'Confirmar Venta',
       content: `
-<div class="text-center">
-  <p class="text-sm text-slate-500 mb-1">${customer}</p>
-  <p class="text-3xl font-bold text-orange-600 mb-2">$${total.toFixed(2)}</p>
-  ${discountPercent > 0 ? `<p class="text-xs text-green-600 mb-2">Descuento: ${discountPercent}% (-$${discountAmount.toFixed(2)})</p>` : ''}
-  <p class="text-sm text-slate-500">${this.cart.length} productos</p>
+<div class="space-y-4">
+  <div class="text-center">
+    <p class="text-sm text-slate-500 mb-1">${customer}</p>
+    <p class="text-3xl font-bold text-orange-600 mb-2">$${total.toFixed(2)}</p>
+    ${discountPercent > 0 ? `<p class="text-xs text-green-600 mb-2">Descuento: ${discountPercent}% (-$${discountAmount.toFixed(2)})</p>` : ''}
+    <p class="text-sm text-slate-500">${this.cart.length} productos</p>
+  </div>
+
+  <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Método de pago</label>
+      <select id="pay-method" onchange="SalesPage.toggleCashFields(this.value)"
+        class="w-full px-3 py-2 rounded-lg border border-slate-200">
+        <option value="cash">Efectivo</option>
+        <option value="card">Tarjeta</option>
+        <option value="transfer">Transferencia</option>
+        <option value="other">Otro</option>
+      </select>
+    </div>
+
+    <div id="cash-fields" class="space-y-3">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Efectivo recibido</label>
+        <input type="number" id="cash-received" step="0.01" value="${total.toFixed(2)}"
+          class="w-full px-3 py-2 rounded-lg border border-slate-200">
+        <p class="text-xs text-slate-500 mt-1">Si el cliente paga exacto, deja el mismo total.</p>
+      </div>
+    </div>
+  </div>
 </div>
 `,
       confirmText: 'Confirmar',
       cancelText: 'Cancelar',
       onConfirm: () => {
+        const method = document.getElementById('pay-method')?.value || 'cash';
+
+        let paidAmount = total;
+        let change = 0;
+
+        if (method === 'cash') {
+          paidAmount = parseFloat(document.getElementById('cash-received')?.value || '0') || 0;
+          if (paidAmount < total) {
+            Components.toast('Efectivo insuficiente', 'error');
+            return false;
+          }
+          change = paidAmount - total;
+        }
+
+        // Actualizar stock
         this.cart.forEach(item => Store.products.updateStock(item.id, item.quantity));
 
+        // Guardar venta con info de pago
         const sale = Store.sales.add({
           items: this.cart.map(i => ({ id: i.id, name: i.name, qty: i.quantity, price: i.price })),
           subtotal,
           discount: discountAmount,
           total,
-          customer
+          customer,
+          paymentMethod: method,
+          paidAmount,
+          change
         });
 
         this.cart = [];
         this.rerender();
         Components.toast('Venta realizada', 'success');
 
+        // Impresión
         if (window.TicketPrinter) {
           if (ticketCfg.autoPrint) {
             TicketPrinter.printSale(sale, { auto: true });
@@ -349,9 +399,11 @@ const SalesPage = {
               title: 'Ticket',
               content: `
 <p class="text-slate-600 text-sm mb-2">¿Deseas imprimir el ticket de esta venta?</p>
-<div class="bg-slate-50 rounded-lg p-3 text-sm">
+<div class="bg-slate-50 rounded-lg p-3 text-sm space-y-1">
   <div class="flex justify-between"><span>Ticket</span><span>#${String(sale.id).slice(-6)}</span></div>
+  <div class="flex justify-between"><span>Pago</span><span>${SalesPage._paymentLabel(sale.paymentMethod)}</span></div>
   <div class="flex justify-between font-bold text-orange-600"><span>Total</span><span>$${sale.total.toFixed(2)}</span></div>
+  ${sale.paymentMethod === 'cash' ? `<div class="flex justify-between"><span>Cambio</span><span>$${sale.change.toFixed(2)}</span></div>` : ''}
 </div>
 `,
               confirmText: 'Imprimir',
@@ -360,8 +412,23 @@ const SalesPage = {
             });
           }
         }
+
+        return true;
       }
     });
+
+    // Asegurar estado inicial correcto
+    setTimeout(() => this.toggleCashFields('cash'), 0);
+  },
+
+  _paymentLabel(method) {
+    const map = {
+      cash: 'Efectivo',
+      card: 'Tarjeta',
+      transfer: 'Transferencia',
+      other: 'Otro'
+    };
+    return map[method] || 'Efectivo';
   },
 
   showRecentSalesModal() {
@@ -378,8 +445,13 @@ const SalesPage = {
   ${sales.map(s => `
   <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
     <div>
-      <p class="text-sm font-semibold text-slate-900">#${String(s.id).slice(-6)} <span class="text-xs text-slate-400">(${new Date(s.date).toLocaleString('es')})</span></p>
-      <p class="text-xs text-slate-500">${(s.customer || 'Público General')} • ${(s.items||[]).reduce((a,i)=>a+(i.qty||0),0)} items</p>
+      <p class="text-sm font-semibold text-slate-900">
+        #${String(s.id).slice(-6)}
+        <span class="text-xs text-slate-400">(${new Date(s.date).toLocaleString('es')})</span>
+      </p>
+      <p class="text-xs text-slate-500">
+        ${(s.customer || 'Público General')} • ${(s.items||[]).reduce((a,i)=>a+(i.qty||0),0)} items • ${SalesPage._paymentLabel(s.paymentMethod || 'cash')}
+      </p>
     </div>
     <div class="flex items-center gap-2">
       <span class="font-bold text-orange-600">$${Number(s.total||0).toFixed(2)}</span>
@@ -399,10 +471,7 @@ const SalesPage = {
   printSaleById(id) {
     const sale = Store.sales.getAll().find(s => s.id === id);
     if (!sale) return;
-    if (!window.TicketPrinter) {
-      Components.toast('TicketPrinter no está cargado', 'error');
-      return;
-    }
+    if (!window.TicketPrinter) return Components.toast('TicketPrinter no está cargado', 'error');
     TicketPrinter.printSale(sale, { auto: true });
   }
 };
