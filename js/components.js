@@ -44,8 +44,20 @@ const Components = {
 
   toast(message, type = 'success', duration = 3000) {
     const container = document.getElementById('toast-container');
-    const icons = { success: this.icons.check, error: this.icons.close, warning: this.icons.warning, info: this.icons.info };
-    const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
+    if (!container) return;
+
+    const icons = {
+      success: this.icons.check,
+      error: this.icons.close,
+      warning: this.icons.warning,
+      info: this.icons.info
+    };
+    const colors = {
+      success: 'bg-green-500',
+      error: 'bg-red-500',
+      warning: 'bg-yellow-500',
+      info: 'bg-blue-500'
+    };
 
     const toast = document.createElement('div');
     toast.className = `flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-white ${colors[type]} toast-enter`;
@@ -71,8 +83,8 @@ const Components = {
     } = options;
 
     const container = document.getElementById('modal-container');
+    if (!container) return;
 
-    // Limpiar modales anteriores
     container.innerHTML = '';
 
     const modal = document.createElement('div');
@@ -88,25 +100,22 @@ const Components = {
           <h3 class="text-xl font-semibold text-slate-900 mb-4">${title}</h3>
           <div class="text-slate-600">${content}</div>
         </div>
-
         <div class="flex gap-3 p-4 bg-slate-50 rounded-b-2xl sticky bottom-0">
           ${showCancel ? `
             <button id="modal-cancel" class="flex-1 px-4 py-2.5 rounded-lg border border-slate-200
             text-slate-700 font-medium hover:bg-slate-100 transition btn-press">${cancelText}</button>
           ` : ''}
-
-          <button id="modal-confirm" class="${showCancel ? 'flex-1' : 'w-full'} px-4 py-2.5 rounded-lg ${type === 'danger' ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'} text-white font-medium transition btn-press">${confirmText}</button>
+          <button id="modal-confirm" class="${showCancel ? 'flex-1' : 'w-full'} px-4 py-2.5 rounded-lg
+            ${type === 'danger' ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'}
+            text-white font-medium transition btn-press">${confirmText}</button>
         </div>
       </div>
     `;
+
     container.appendChild(modal);
 
-    // Función para cerrar modal
-    const closeModal = () => {
-      modal.remove();
-    };
+    const closeModal = () => modal.remove();
 
-    // Event listeners
     const cancelBtn = modal.querySelector('#modal-cancel');
     const confirmBtn = modal.querySelector('#modal-confirm');
 
@@ -119,21 +128,32 @@ const Components = {
       });
     }
 
-    confirmBtn.addEventListener('click', (e) => {
+    // FIX CRÍTICO: soportar onConfirm async (Promise)
+    confirmBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      if (onConfirm) {
-        const result = onConfirm(closeModal);
+      if (!onConfirm) {
+        closeModal();
+        return;
+      }
+
+      try {
+        let result = onConfirm(closeModal);
+
+        if (result && typeof result.then === 'function') {
+          result = await result;
+        }
+
         if (result !== false) {
           closeModal();
         }
-      } else {
-        closeModal();
+      } catch (err) {
+        console.error('Modal onConfirm error:', err);
+        Components.toast('Error en la acción', 'error');
       }
     });
 
-    // Click fuera para cerrar
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
         closeModal();
