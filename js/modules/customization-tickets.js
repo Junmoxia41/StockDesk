@@ -1,125 +1,168 @@
 /**
- * Customization Tickets Module
+ * Router Module - Client-side Routing
  * Stock Desk Application
  */
+const Router = {
+  currentRoute: null,
+  routes: {},
 
-const CustomizationTickets = {
-    render() {
-        const ticketConfig = Store.get('stockdesk_ticket_config') || {
-            showLogo: true,
-            showDate: true,
-            showCashier: true,
-            header: 'Stock Desk',
-            footer: 'Gracias por su compra',
-            width: '80mm'
-        };
+  publicRoutes: ['splash', 'landing', 'login', 'device-setup'],
+  redirectAttempts: 0,
 
-        return `
-            <div class="grid lg:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                        <h3 class="font-semibold text-slate-900 mb-4">Configuración del Ticket</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-2">Encabezado</label>
-                                <input type="text" id="ticket-header" value="${ticketConfig.header}" 
-                                       class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-2">Pie de Ticket</label>
-                                <textarea id="ticket-footer" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">${ticketConfig.footer}</textarea>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-2">Ancho del Papel</label>
-                                <select id="ticket-width" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
-                                    <option value="58mm" ${ticketConfig.width === '58mm' ? 'selected' : ''}>58mm</option>
-                                    <option value="80mm" ${ticketConfig.width === '80mm' ? 'selected' : ''}>80mm</option>
-                                    <option value="A4" ${ticketConfig.width === 'A4' ? 'selected' : ''}>A4</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+  register(path, handler) {
+    this.routes[path] = handler;
+  },
 
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                        <h3 class="font-semibold text-slate-900 mb-4">Elementos a Mostrar</h3>
-                        <div class="space-y-3">
-                            ${this.renderToggle('show-logo', 'Mostrar Logo', ticketConfig.showLogo)}
-                            ${this.renderToggle('show-date', 'Mostrar Fecha y Hora', ticketConfig.showDate)}
-                            ${this.renderToggle('show-cashier', 'Mostrar Cajero', ticketConfig.showCashier)}
-                            ${this.renderToggle('show-customer', 'Mostrar Cliente', false)}
-                            ${this.renderToggle('show-barcode', 'Código de Barras', false)}
-                        </div>
-                    </div>
+  // Expande permisos “viejos” para no romper roles existentes
+  expandPermissions(perms = []) {
+    const set = new Set(perms);
 
-                    <button onclick="CustomizationTickets.save()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl">
-                        Guardar Configuración
-                    </button>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                    <h3 class="font-semibold text-slate-900 mb-4">Vista Previa</h3>
-                    <div class="flex justify-center">
-                        <div class="bg-white border-2 border-dashed border-slate-300 p-4 w-64 font-mono text-xs">
-                            <div class="text-center mb-3">
-                                <p class="font-bold text-sm">${ticketConfig.header}</p>
-                                <p class="text-slate-500">RFC: XXXX000000XXX</p>
-                            </div>
-                            <div class="border-t border-dashed border-slate-300 my-2"></div>
-                            <div class="mb-2">
-                                <p>Fecha: ${new Date().toLocaleDateString('es')}</p>
-                                <p>Hora: ${new Date().toLocaleTimeString('es')}</p>
-                                <p>Cajero: Usuario</p>
-                                <p>Ticket: #000001</p>
-                            </div>
-                            <div class="border-t border-dashed border-slate-300 my-2"></div>
-                            <div class="space-y-1 mb-2">
-                                <div class="flex justify-between">
-                                    <span>Producto 1</span>
-                                    <span>$50.00</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>Producto 2</span>
-                                    <span>$35.00</span>
-                                </div>
-                            </div>
-                            <div class="border-t border-dashed border-slate-300 my-2"></div>
-                            <div class="flex justify-between font-bold">
-                                <span>TOTAL:</span>
-                                <span>$85.00</span>
-                            </div>
-                            <div class="border-t border-dashed border-slate-300 my-2"></div>
-                            <div class="text-center">
-                                <p>${ticketConfig.footer}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    },
-
-    renderToggle(id, label, checked) {
-        return `
-            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                <span class="text-sm font-medium text-slate-700">${label}</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} class="sr-only peer">
-                    <div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                </label>
-            </div>
-        `;
-    },
-
-    save() {
-        const config = {
-            header: document.getElementById('ticket-header')?.value || 'Stock Desk',
-            footer: document.getElementById('ticket-footer')?.value || 'Gracias',
-            width: document.getElementById('ticket-width')?.value || '80mm',
-            showLogo: document.getElementById('show-logo')?.checked ?? true,
-            showDate: document.getElementById('show-date')?.checked ?? true,
-            showCashier: document.getElementById('show-cashier')?.checked ?? true
-        };
-        Store.set('stockdesk_ticket_config', config);
-        Components.toast('Configuración guardada', 'success');
+    // Compatibilidad: "products" implica CRUD
+    if (set.has('products')) {
+      set.add('products.view');
+      set.add('products.create');
+      set.add('products.edit');
+      set.add('products.delete');
     }
+
+    // Compatibilidad: "sales" implica descuentos
+    if (set.has('sales')) {
+      set.add('sales.discount');
+    }
+
+    return Array.from(set);
+  },
+
+  hasAnyPermission(userPerms, required) {
+    if (!required || required.length === 0) return true;
+    const perms = this.expandPermissions(userPerms || []);
+    if (perms.includes('all')) return true;
+    return required.some(r => perms.includes(r));
+  },
+
+  navigate(path, params = {}, options = { push: true }) {
+    // --- MIDDLEWARE DE SEGURIDAD (Global y Roles) ---
+    if (!this.publicRoutes.includes(path)) {
+      const user = Store.get(Store.KEYS.USER);
+
+      // 1) Login
+      if (!user || !user.loggedIn) {
+        this.navigate('login', {}, { push: options.push });
+        return;
+      }
+
+      // 2) RBAC
+      const roleName = user.role;
+      let allRoles = Store.get(Store.KEYS.ROLES);
+
+      if (!allRoles || allRoles.length === 0) {
+        // Defaults de emergencia
+        allRoles = [
+          { name: 'Administrador', permissions: ['all'] },
+          { name: 'Gerente', permissions: ['products', 'sales', 'reports', 'users', 'settings'] },
+          { name: 'Cajero', permissions: ['sales', 'reports'] }
+        ];
+      }
+
+      const role = allRoles.find(r => r.name === roleName);
+      const permissions = role?.permissions || [];
+
+      // Permisos por ruta (fino)
+      const routePermissions = {
+        dashboard: ['sales', 'reports', 'products.view', 'inventory', 'finance'],
+        products: ['products.view', 'products'],
+        inventory: ['inventory'],
+        sales: ['sales'],
+        reports: ['reports', 'sales'],
+        finance: ['finance'],
+        users: ['users'],
+        settings: ['settings'],
+        customization: ['settings'],
+        security: ['security'],
+        suppliers: ['suppliers'],
+        notifications: ['notifications'],
+        dashboards: ['reports', 'sales', 'finance', 'inventory'],
+        guide: [] // guía para todos los logueados
+      };
+
+      if (routePermissions[path]) {
+        const required = routePermissions[path];
+        const ok = this.hasAnyPermission(permissions, required);
+
+        if (!ok) {
+          if (this.redirectAttempts < 1) {
+            this.redirectAttempts++;
+            Components.toast(`Acceso denegado: Rol ${roleName} sin permisos para "${path}".`, 'error', 4000);
+            const safeRoute = (path !== 'sales') ? 'sales' : 'dashboard';
+            setTimeout(() => this.navigate(safeRoute, {}, { push: true }), 100);
+          }
+          return;
+        }
+      }
+
+      this.redirectAttempts = 0;
+
+      // 3) Seguridad de acceso (horario/IP) - si está presente
+      if (typeof SecurityAccess !== 'undefined') {
+        const access = SecurityAccess.checkAccess();
+        if (!access.allowed) {
+          Components.toast(` ${access.reason}`, 'error', 4000);
+          if (this.currentRoute !== 'login') setTimeout(() => this.navigate('login', {}, { push: true }), 100);
+          return;
+        }
+      }
+    }
+    // -------------------------------
+
+    if (this.routes[path]) {
+      this.currentRoute = path;
+
+      if (options.push) {
+        window.history.pushState({ path, params }, '', `#${path}`);
+      }
+
+      this.render(path, params);
+    } else {
+      console.warn(`Ruta no encontrada: ${path}.`);
+      const user = Store.get(Store.KEYS.USER);
+      if (user && user.loggedIn) this.navigate('dashboard', {}, { push: options.push });
+      else this.navigate('login', {}, { push: options.push });
+    }
+  },
+
+  render(path, params = {}) {
+    const app = document.getElementById('app');
+    if (!this.routes[path]) return;
+
+    app.innerHTML = '';
+    const content = this.routes[path](params);
+
+    if (typeof content === 'string') app.innerHTML = content;
+    else if (content instanceof HTMLElement) app.appendChild(content);
+
+    this.executeAfterRender(path);
+  },
+
+  afterRenderCallbacks: {},
+  onAfterRender(path, callback) {
+    this.afterRenderCallbacks[path] = callback;
+  },
+  executeAfterRender(path) {
+    if (this.afterRenderCallbacks[path]) setTimeout(() => this.afterRenderCallbacks[path](), 0);
+  },
+
+  init() {
+    window.addEventListener('popstate', (e) => {
+      if (e.state && e.state.path) {
+        this.navigate(e.state.path, e.state.params, { push: false });
+      }
+    });
+
+    const hash = window.location.hash.slice(1);
+    if (hash && this.routes[hash]) this.navigate(hash, {}, { push: true });
+  },
+
+  getCurrentRoute() {
+    return this.currentRoute;
+  }
 };
