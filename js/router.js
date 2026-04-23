@@ -6,85 +6,93 @@ const Router = {
   currentRoute: null,
   routes: {},
 
-  // Rutas públicas que no requieren verificación de seguridad
   publicRoutes: ['splash', 'landing', 'login', 'device-setup'],
-
-  // Variable para evitar bucles de redirección
   redirectAttempts: 0,
 
-  // Register a route
   register(path, handler) {
     this.routes[path] = handler;
   },
 
-  // Navigate to a route
-  // options.push = false evita pushState (necesario para popstate/back)
+  // Expande permisos “viejos” para no romper roles existentes
+  expandPermissions(perms = []) {
+    const set = new Set(perms);
+
+    // Compatibilidad: "products" implica CRUD
+    if (set.has('products')) {
+      set.add('products.view');
+      set.add('products.create');
+      set.add('products.edit');
+      set.add('products.delete');
+    }
+
+    // Compatibilidad: "sales" implica descuentos
+    if (set.has('sales')) {
+      set.add('sales.discount');
+    }
+
+    return Array.from(set);
+  },
+
+  hasAnyPermission(userPerms, required) {
+    if (!required || required.length === 0) return true;
+    const perms = this.expandPermissions(userPerms || []);
+    if (perms.includes('all')) return true;
+    return required.some(r => perms.includes(r));
+  },
+
   navigate(path, params = {}, options = { push: true }) {
     // --- MIDDLEWARE DE SEGURIDAD (Global y Roles) ---
     if (!this.publicRoutes.includes(path)) {
       const user = Store.get(Store.KEYS.USER);
 
-      // 1. Verificar Login
+      // 1) Login
       if (!user || !user.loggedIn) {
         this.navigate('login', {}, { push: options.push });
         return;
       }
 
-      // 2. Verificar Permisos de Rol (RBAC)
+      // 2) RBAC
       const roleName = user.role;
+      let allRoles = Store.get(Store.KEYS.ROLES);
 
-      // CORRECCIÓN: Obtener roles y validar si está vacío
-      let allRoles = Store.get('stockdesk_roles');
-
-      // Si es null, undefined o array vacío, usar defaults
       if (!allRoles || allRoles.length === 0) {
+        // Defaults de emergencia
         allRoles = [
           { name: 'Administrador', permissions: ['all'] },
-          { name: 'Gerente', permissions: ['products', 'sales', 'reports', 'users'] },
-          // CORRECCIÓN: Añadimos 'reports' al cajero por defecto también
+          { name: 'Gerente', permissions: ['products', 'sales', 'reports', 'users', 'settings'] },
           { name: 'Cajero', permissions: ['sales', 'reports'] }
         ];
       }
 
-      const userRoleConfig = allRoles.find(r => r.name === roleName);
-      const permissions = userRoleConfig ? userRoleConfig.permissions : [];
+      const role = allRoles.find(r => r.name === roleName);
+      const permissions = role?.permissions || [];
 
-      // Reglas de acceso
+      // Permisos por ruta (fino)
       const routePermissions = {
-        'products': ['all', 'products', 'products.view'],
-        'inventory': ['all', 'inventory'],
-        'settings': ['all', 'settings'],
-        // CORRECCIÓN: Añadimos 'sales' para que el cajero pueda ver 'reports'
-        'reports': ['all', 'reports', 'sales'],
-        'users': ['all', 'users'],
-        'finance': ['all'],
-        'sales': ['all', 'sales'],
-        'security': ['all'],
-        'customization': ['all'],
-        'suppliers': ['all'],
-        'dashboards': ['all'],
-        'catalog': ['all'],
-        'guide': ['all', 'sales', 'reports', 'products', 'inventory', 'users', 'settings'] // guía visible a casi todos
+        dashboard: ['sales', 'reports', 'products.view', 'inventory', 'finance'],
+        products: ['products.view', 'products'],
+        inventory: ['inventory'],
+        sales: ['sales'],
+        reports: ['reports', 'sales'],
+        finance: ['finance'],
+        users: ['users'],
+        settings: ['settings'],
+        customization: ['settings'],
+        security: ['security'],
+        suppliers: ['suppliers'],
+        notifications: ['notifications'],
+        dashboards: ['reports', 'sales', 'finance', 'inventory'],
+        guide: [] // guía para todos los logueados
       };
 
-      // Si la ruta requiere permisos
       if (routePermissions[path]) {
         const required = routePermissions[path];
-        const hasPermission = required.some(req => permissions.includes(req));
+        const ok = this.hasAnyPermission(permissions, required);
 
-        if (!hasPermission) {
-          console.warn(`Acceso denegado a ${path}. Permisos insuficientes.`);
-
-          // CORRECCIÓN: Limitar intentos para evitar bucle infinito
+        if (!ok) {
           if (this.redirectAttempts < 1) {
             this.redirectAttempts++;
-            Components.toast(
-              ` Acceso denegado: Rol ${roleName} sin permisos para esta sección.`,
-              'error',
-              4000
-            );
-
-            // Redirigir a zona segura
+            Components.toast(`Acceso denegado: Rol ${roleName} sin permisos para "${path}".`, 'error', 4000);
             const safeRoute = (path !== 'sales') ? 'sales' : 'dashboard';
             setTimeout(() => this.navigate(safeRoute, {}, { push: true }), 100);
           }
@@ -92,10 +100,9 @@ const Router = {
         }
       }
 
-      // Resetear contador de intentos si el acceso fue exitoso
       this.redirectAttempts = 0;
 
-      // 3. Verificar Seguridad (Horarios, IP)
+      // 3) Seguridad de acceso (horario/IP) - si está presente
       if (typeof SecurityAccess !== 'undefined') {
         const access = SecurityAccess.checkAccess();
         if (!access.allowed) {
@@ -118,29 +125,22 @@ const Router = {
     } else {
       console.warn(`Ruta no encontrada: ${path}.`);
       const user = Store.get(Store.KEYS.USER);
-      if (user && user.loggedIn) {
-        this.navigate('dashboard', {}, { push: options.push });
-      } else {
-        this.navigate('login', {}, { push: options.push });
-      }
+      if (user && user.loggedIn) this.navigate('dashboard', {}, { push: options.push });
+      else this.navigate('login', {}, { push: options.push });
     }
   },
 
-  // Render the current route
   render(path, params = {}) {
     const app = document.getElementById('app');
-    if (this.routes[path]) {
-      app.innerHTML = '';
-      const content = this.routes[path](params);
+    if (!this.routes[path]) return;
 
-      if (typeof content === 'string') {
-        app.innerHTML = content;
-      } else if (content instanceof HTMLElement) {
-        app.appendChild(content);
-      }
+    app.innerHTML = '';
+    const content = this.routes[path](params);
 
-      this.executeAfterRender(path);
-    }
+    if (typeof content === 'string') app.innerHTML = content;
+    else if (content instanceof HTMLElement) app.appendChild(content);
+
+    this.executeAfterRender(path);
   },
 
   afterRenderCallbacks: {},
@@ -148,13 +148,10 @@ const Router = {
     this.afterRenderCallbacks[path] = callback;
   },
   executeAfterRender(path) {
-    if (this.afterRenderCallbacks[path]) {
-      setTimeout(() => this.afterRenderCallbacks[path](), 0);
-    }
+    if (this.afterRenderCallbacks[path]) setTimeout(() => this.afterRenderCallbacks[path](), 0);
   },
 
   init() {
-    // FIX: No usar navigate() con pushState dentro del popstate (duplica historial)
     window.addEventListener('popstate', (e) => {
       if (e.state && e.state.path) {
         this.navigate(e.state.path, e.state.params, { push: false });
@@ -162,9 +159,7 @@ const Router = {
     });
 
     const hash = window.location.hash.slice(1);
-    if (hash && this.routes[hash]) {
-      this.navigate(hash, {}, { push: true });
-    }
+    if (hash && this.routes[hash]) this.navigate(hash, {}, { push: true });
   },
 
   getCurrentRoute() {
