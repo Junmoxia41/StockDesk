@@ -10,6 +10,7 @@ const CustomizationTickets = {
       showCashier: true,
       showCustomer: false,
       autoPrint: false,
+      showUnitPrice: true,
       header: 'Stock Desk',
       footer: 'Gracias por su compra',
       width: '80mm'
@@ -38,9 +39,10 @@ const CustomizationTickets = {
           <label class="block text-sm font-medium text-slate-700 mb-2">Ancho del Papel</label>
           <select id="ticket-width" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
             <option value="58mm" ${ticketConfig.width === '58mm' ? 'selected' : ''}>58mm</option>
-            <option value="80mm" ${ticketConfig.width === '80mm' ? 'selected' : ''}>80mm</option>
+            <option value="80mm" ${ticketConfig.width === '80mm' ? 'selected' : ''}>80mm (Recomendado)</option>
             <option value="A4" ${ticketConfig.width === 'A4' ? 'selected' : ''}>A4</option>
           </select>
+          <p class="text-xs text-slate-500 mt-1">80mm es el formato más legible. 58mm es más compacto.</p>
         </div>
       </div>
     </div>
@@ -52,7 +54,12 @@ const CustomizationTickets = {
         ${this.renderToggle('show-date', 'Mostrar Fecha y Hora', !!ticketConfig.showDate)}
         ${this.renderToggle('show-cashier', 'Mostrar Cajero', !!ticketConfig.showCashier)}
         ${this.renderToggle('show-customer', 'Mostrar Cliente', !!ticketConfig.showCustomer)}
+        ${this.renderToggle('show-unit', 'Mostrar precio unitario (80mm/A4)', !!ticketConfig.showUnitPrice)}
         ${this.renderToggle('auto-print', 'Imprimir automático al cobrar', !!ticketConfig.autoPrint)}
+      </div>
+
+      <div class="mt-4 bg-yellow-50 border border-yellow-100 rounded-xl p-4 text-sm text-yellow-800">
+        Consejo: Para tickets perfectos, en el diálogo de impresión desactiva “Encabezados y pies de página” del navegador.
       </div>
     </div>
 
@@ -60,7 +67,6 @@ const CustomizationTickets = {
       <button onclick="CustomizationTickets.save()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl">
         Guardar
       </button>
-
       <button onclick="CustomizationTickets.printTest()" class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">
         Imprimir prueba
       </button>
@@ -125,6 +131,7 @@ const CustomizationTickets = {
       showDate: document.getElementById('show-date')?.checked ?? true,
       showCashier: document.getElementById('show-cashier')?.checked ?? true,
       showCustomer: document.getElementById('show-customer')?.checked ?? false,
+      showUnitPrice: document.getElementById('show-unit')?.checked ?? true,
       autoPrint: document.getElementById('auto-print')?.checked ?? false
     };
     Store.set(Store.KEYS.TICKET_CONFIG, config);
@@ -133,10 +140,7 @@ const CustomizationTickets = {
   },
 
   printTest() {
-    if (window.TicketPrinter) {
-      TicketPrinter.printTest();
-    } else {
-      Components.toast('TicketPrinter no está cargado', 'error');
-    }
+    if (window.TicketPrinter) TicketPrinter.printTest();
+    else Components.toast('TicketPrinter no está cargado', 'error');
   }
 };
