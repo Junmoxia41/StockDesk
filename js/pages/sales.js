@@ -11,8 +11,6 @@ const SalesPage = {
     const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const device = Store.device.get();
     const isMobile = device === 'mobile';
-
-    // Check user role for UI adjustments
     const user = Store.get(Store.KEYS.USER);
     const isAdmin = user && (user.role === 'Administrador' || user.role === 'Gerente');
 
@@ -21,6 +19,11 @@ const SalesPage = {
       : this.renderDesktop(products, total, isAdmin);
 
     return LayoutComponents.layout(content, 'sales');
+  },
+
+  rerender() {
+    // FIX UX: re-render sin llenar historial y manteniendo middleware
+    Router.navigate('sales', {}, { push: false });
   },
 
   renderDesktop(products, total, isAdmin) {
@@ -175,20 +178,14 @@ const SalesPage = {
     <div class="grid grid-cols-2 gap-3 mb-3">
       <div>
         <label class="block text-xs font-medium text-slate-500 mb-1">Cliente</label>
-        <div class="flex">
-          <input type="text" id="pos-customer" placeholder="Público General"
-            class="w-full px-2 py-1.5 rounded-l-lg border border-slate-200 text-sm">
-          <button class="px-2 bg-slate-100 border border-l-0 border-slate-200 rounded-r-lg hover:bg-slate-200">
-            ${Components.icons.users.replace('w-5 h-5', 'w-4 h-4')}
-          </button>
-        </div>
+        <input type="text" id="pos-customer" placeholder="Público General"
+          class="w-full px-2 py-2 rounded-lg border border-slate-200 text-sm">
       </div>
-
       <div>
         <label class="block text-xs font-medium text-slate-500 mb-1">Descuento (%)</label>
         <input type="number" id="pos-discount" min="0" max="100" value="0"
           onchange="SalesPage.updateTotal()"
-          class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-sm">
+          class="w-full px-2 py-2 rounded-lg border border-slate-200 text-sm">
       </div>
     </div>
 
@@ -197,14 +194,13 @@ const SalesPage = {
       <span id="pos-subtotal">$${total.toFixed(2)}</span>
     </div>
 
-    <div class="flex items-center justify-between mb-3 md:mb-4 text-lg">
+    <div class="flex items-center justify-between mb-3 text-lg">
       <span class="font-bold text-slate-900">TOTAL</span>
-      <span class="font-bold text-xl md:text-2xl text-orange-600" id="pos-total-display">$${total.toFixed(2)}</span>
+      <span class="font-bold text-xl text-orange-600" id="pos-total-display">$${total.toFixed(2)}</span>
     </div>
 
     <button onclick="SalesPage.checkout()"
-      class="w-full py-3 md:py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 disabled:cursor-not-allowed
-      text-white font-bold rounded-xl shadow-lg shadow-orange-500/30 transition btn-press flex items-center justify-center gap-2"
+      class="w-full py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-orange-500/30 transition btn-press flex items-center justify-center gap-2"
       ${this.cart.length === 0 ? 'disabled' : ''}>
       ${Components.icons.dollar} Cobrar
     </button>
@@ -213,10 +209,9 @@ const SalesPage = {
 `;
   },
 
-  // FIX: Búsqueda sin llenar historial
   handleSearch(query) {
     this.searchQuery = query;
-    Router.render('sales');
+    this.rerender();
   },
 
   addToCart(productId) {
@@ -224,20 +219,15 @@ const SalesPage = {
     if (!product || product.stock === 0) return;
 
     const existingIndex = this.cart.findIndex(item => item.id === productId);
-
     if (existingIndex >= 0) {
-      if (this.cart[existingIndex].quantity < product.stock) {
-        this.cart[existingIndex].quantity++;
-      } else {
-        Components.toast('Stock insuficiente', 'warning');
-        return;
-      }
+      if (this.cart[existingIndex].quantity < product.stock) this.cart[existingIndex].quantity++;
+      else { Components.toast('Stock insuficiente', 'warning'); return; }
     } else {
       this.cart.push({ ...product, quantity: 1 });
     }
 
     Components.toast(`${product.name} agregado`, 'success');
-    Router.render('sales');
+    this.rerender();
   },
 
   updateQuantity(index, delta) {
@@ -245,24 +235,19 @@ const SalesPage = {
     const product = Store.products.getById(item.id);
     const newQty = item.quantity + delta;
 
-    if (newQty <= 0) {
-      this.removeFromCart(index);
-    } else if (newQty <= product.stock) {
-      this.cart[index].quantity = newQty;
-      Router.render('sales');
-    } else {
-      Components.toast('Stock insuficiente', 'warning');
-    }
+    if (newQty <= 0) this.removeFromCart(index);
+    else if (newQty <= product.stock) { this.cart[index].quantity = newQty; this.rerender(); }
+    else Components.toast('Stock insuficiente', 'warning');
   },
 
   removeFromCart(index) {
     this.cart.splice(index, 1);
-    Router.render('sales');
+    this.rerender();
   },
 
   clearCart() {
     this.cart = [];
-    Router.render('sales');
+    this.rerender();
   },
 
   showCartModal() {
@@ -271,7 +256,7 @@ const SalesPage = {
       title: `Carrito (${this.cart.length} items)`,
       content: `
 <div class="max-h-60 overflow-y-auto space-y-2 mb-4">
-  ${this.cart.map((item) => `
+  ${this.cart.map(item => `
   <div class="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
     <span class="text-sm">${item.name} x${item.quantity}</span>
     <span class="font-semibold">$${(item.price * item.quantity).toFixed(2)}</span>
@@ -290,9 +275,8 @@ const SalesPage = {
     const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     let discountPercent = parseFloat(document.getElementById('pos-discount')?.value) || 0;
 
-    // Validación 0-100%
-    if (discountPercent < 0) { discountPercent = 0; document.getElementById('pos-discount').value = 0; }
-    if (discountPercent > 100) { discountPercent = 100; document.getElementById('pos-discount').value = 100; }
+    if (discountPercent < 0) discountPercent = 0;
+    if (discountPercent > 100) discountPercent = 100;
 
     const discountAmount = subtotal * (discountPercent / 100);
     const total = Math.max(0, subtotal - discountAmount);
@@ -311,6 +295,7 @@ const SalesPage = {
     const discountAmount = subtotal * (discountPercent / 100);
     const total = Math.max(0, subtotal - discountAmount);
     const customer = document.getElementById('pos-customer')?.value || 'Público General';
+    const ticketCfg = Store.get(Store.KEYS.TICKET_CONFIG) || {};
 
     Components.modal({
       title: 'Confirmar Venta',
@@ -323,22 +308,38 @@ const SalesPage = {
 </div>
 `,
       confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
       onConfirm: () => {
         // Actualizar stock
         this.cart.forEach(item => Store.products.updateStock(item.id, item.quantity));
 
         // Guardar venta
-        Store.sales.add({
+        const sale = Store.sales.add({
           items: this.cart.map(i => ({ id: i.id, name: i.name, qty: i.quantity, price: i.price })),
-          subtotal: subtotal,
+          subtotal,
           discount: discountAmount,
-          total: total,
-          customer: customer
+          total,
+          customer
         });
 
         this.cart = [];
         Components.toast('Venta realizada con éxito', 'success');
-        Router.render('sales');
+        this.rerender();
+
+        // Impresión
+        if (window.TicketPrinter) {
+          if (ticketCfg.autoPrint) {
+            TicketPrinter.printSale(sale, { auto: true });
+          } else {
+            Components.modal({
+              title: 'Ticket',
+              content: `<p>¿Deseas imprimir el ticket de esta venta?</p>`,
+              confirmText: 'Imprimir',
+              cancelText: 'No imprimir',
+              onConfirm: () => TicketPrinter.printSale(sale, { auto: true })
+            });
+          }
+        }
       }
     });
   }
