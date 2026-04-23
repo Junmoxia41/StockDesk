@@ -1,6 +1,6 @@
 /**
- * TicketPrinter - Ticket profesional con Pago/Cambio
- * Stock Desk Application (static / GitHub Pages)
+ * TicketPrinter - Ticket profesional (58/80/A4) con Pago/Cambio
+ * FIX: usa Blob URL (evita que se muestre código fuente por error).
  */
 window.TicketPrinter = {
   getConfig() {
@@ -43,12 +43,12 @@ window.TicketPrinter = {
     return map[method] || 'Efectivo';
   },
 
-  buildTicketHTML(sale, options = {}) {
+  buildTicketHTML(sale, { autoPrint = true, widthOverride = null } = {}) {
     const settings = Store.settings.get();
     const user = Store.get(Store.KEYS.USER) || {};
     const cfg = this.getConfig();
 
-    const width = options.width || cfg.width; // 58mm | 80mm | A4
+    const width = widthOverride || cfg.width; // 58mm | 80mm | A4
     const is58 = width === '58mm';
     const is80 = width === '80mm';
 
@@ -136,16 +136,11 @@ ${method === 'cash' ? `
 </tr>`;
       }).join('');
 
-      itemsHTML = `
-<table>
-  <thead>${tableHeader}</thead>
-  <tbody>${rows}</tbody>
-</table>
-`;
+      itemsHTML = `<table><thead>${tableHeader}</thead><tbody>${rows}</tbody></table>`;
     }
 
-    return `
-<!doctype html>
+    // IMPORTANTE: SIEMPRE empezar con <!doctype html>
+    return `<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
@@ -156,7 +151,7 @@ ${method === 'cash' ? `
   body {
     margin: 0;
     background: #fff;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
     font-size: ${baseFont}px;
     line-height: 1.25;
   }
@@ -166,24 +161,21 @@ ${method === 'cash' ? `
   h1 { font-size: ${titleFont}px; margin: 0 0 4px; }
   .muted { color: #444; font-size: ${baseFont - 1}px; }
   .line { border-top: 1px dashed #000; margin: 8px 0; }
-  .row { display: flex; justify-content: space-between; gap: 10px; margin: 2px 0; }
-  .r { text-align: right; }
+  .row { display:flex; justify-content: space-between; gap: 10px; margin: 2px 0; }
+  .r { text-align:right; }
   .nowrap { white-space: nowrap; }
   .wrap { word-break: break-word; overflow-wrap: anywhere; }
-  table { width: 100%; border-collapse: collapse; }
+  table { width:100%; border-collapse: collapse; }
   th, td { padding: 4px 0; vertical-align: top; }
-  th { text-align: left; border-bottom: 1px dashed #000; }
-  th.r, td.r { text-align: right; }
+  th { text-align:left; border-bottom: 1px dashed #000; }
+  th.r, td.r { text-align:right; }
   .totals { margin-top: 6px; }
   .big { font-weight: 800; font-size: ${baseFont + 2}px; }
   .footer { margin-top: 10px; font-size: ${baseFont}px; }
   .item58 { margin: 6px 0; }
   .item58 .name { font-weight: 600; word-break: break-word; overflow-wrap: anywhere; }
   .item58 .meta { display:flex; justify-content: space-between; gap: 8px; margin-top: 2px; }
-  @media print {
-    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    body { background: #fff !important; }
-  }
+  @media print { * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
 <body>
@@ -220,43 +212,41 @@ ${method === 'cash' ? `
   </div>
 
 <script>
-  const AUTO_PRINT = ${options.autoPrint ? 'true' : 'false'};
-  const AUTO_CLOSE = ${options.autoClose ? 'true' : 'false'};
-
-  if (AUTO_PRINT) {
+  const AUTO = ${autoPrint ? 'true' : 'false'};
+  if (AUTO) {
     setTimeout(() => { window.focus(); window.print(); }, 250);
-    window.onafterprint = () => {
-      if (AUTO_CLOSE) setTimeout(() => { try { window.close(); } catch(e) {} }, 300);
-    };
   }
 </script>
 </body>
-</html>
-`;
+</html>`;
   },
 
-  openTicketWindow(html) {
-    const w = window.open('', '_blank', 'noopener,noreferrer,width=420,height=720');
+  // FIX: abrir como Blob URL para que SIEMPRE sea HTML válido
+  _openHtmlAsBlob(html) {
+    if (typeof html !== 'string' || !html.trim().toLowerCase().startsWith('<!doctype html')) {
+      console.error('Ticket HTML inválido. Inicio:', String(html).slice(0, 80));
+      Components.toast('Error generando ticket (HTML inválido). Reemplaza ticket-printer.js y limpia caché.', 'error', 5000);
+      return null;
+    }
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const w = window.open(url, '_blank', 'noopener,noreferrer,width=420,height=720');
     if (!w) {
+      URL.revokeObjectURL(url);
       Components.toast('Bloqueo de popups: permite ventanas emergentes para imprimir', 'error');
       return null;
     }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+
+    // liberar URL luego
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
     return w;
   },
 
   printSale(sale, { auto = true } = {}) {
-    const cfg = this.getConfig();
-    const html = this.buildTicketHTML(sale, {
-      autoPrint: auto,
-      autoClose: auto,
-      width: cfg.width
-    });
-    const w = this.openTicketWindow(html);
-    if (!w) return;
-    if (!auto) w.focus();
+    const html = this.buildTicketHTML(sale, { autoPrint: auto });
+    this._openHtmlAsBlob(html);
   },
 
   printTest() {
@@ -265,7 +255,7 @@ ${method === 'cash' ? `
       date: new Date().toISOString(),
       customer: 'Público General',
       items: [
-        { name: 'Producto largo para probar pago y no corte en 58mm', qty: 2, price: 10 },
+        { name: 'Producto largo para probar que NO se corte en 58mm y que se reorganice', qty: 2, price: 10 },
         { name: 'Otro producto', qty: 1, price: 5.5 }
       ],
       subtotal: 25.5,
