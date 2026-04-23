@@ -1,8 +1,7 @@
 /**
  * Store Module - State Management with LocalStorage
  * Stock Desk Application
- *
- * ROBUST VERSION: Includes Deep Merging and Safe Defaults
+ * FULL FIX: incluye payroll y budgets (para Nómina/Presupuestos)
  */
 const Store = {
   KEYS: {
@@ -11,35 +10,43 @@ const Store = {
     USER: 'stockdesk_user',
     SETTINGS: 'stockdesk_settings',
     DEVICE: 'stockdesk_device',
+
     WAREHOUSES: 'stockdesk_warehouses',
     TRANSFERS: 'stockdesk_transfers',
     INVENTORY_COUNTS: 'stockdesk_inventory_counts',
-    INVENTORY_ADJUSTMENTS: 'stockdesk_adjustments',
     KARDEX: 'stockdesk_kardex',
     KITS: 'stockdesk_kits',
+
     TRANSACTIONS: 'stockdesk_transactions',
     EXPENSES: 'stockdesk_expenses',
     PAYROLL: 'stockdesk_payroll',
     BUDGETS: 'stockdesk_budgets',
+
     SECURITY: 'stockdesk_security',
     SECURITY_LOGS: 'stockdesk_security_logs',
     SECURITY_BACKUPS: 'stockdesk_backups',
     SECURITY_SESSIONS: 'stockdesk_sessions',
+
     NOTIFICATIONS: 'stockdesk_notifications',
     CHANNELS: 'stockdesk_channels',
     ALERT_CONFIG: 'stockdesk_alert_config',
+
     SUPPLIERS: 'stockdesk_suppliers',
     PURCHASE_ORDERS: 'stockdesk_purchase_orders',
+
     CUSTOM_FIELDS: 'stockdesk_custom_fields',
     CATEGORIES: 'stockdesk_categories',
+
     TICKET_CONFIG: 'stockdesk_ticket_config',
     THEME: 'stockdesk_theme',
     CUSTOM_COLORS: 'stockdesk_custom_colors',
+
     USERS: 'stockdesk_users',
     ROLES: 'stockdesk_roles',
     SHIFTS: 'stockdesk_shifts',
     REGISTERS: 'stockdesk_registers',
     AUDIT_LOGS: 'stockdesk_audit_logs',
+
     SECURITY_ACCESS: 'stockdesk_security_access',
     SECURITY_PROTECTION: 'stockdesk_security_protection',
     SECURITY_THREATS: 'stockdesk_security_threats'
@@ -53,7 +60,9 @@ const Store = {
       logRetention: 30,
       logo: null
     },
+
     warehouses: [{ id: 1, name: 'Almacén Principal', location: 'Principal', isDefault: true }],
+
     security: {
       twoFactorEnabled: false,
       lockOnFailure: true,
@@ -63,6 +72,7 @@ const Store = {
       backupRetention: 30,
       sessionTimeout: 60
     },
+
     security_access: {
       ipWhitelistEnabled: false,
       ips: [],
@@ -71,6 +81,7 @@ const Store = {
       endTime: '18:00',
       geoBlockEnabled: false
     },
+
     security_threats: {
       bruteForceProtection: true,
       maxAttempts: 5,
@@ -78,12 +89,15 @@ const Store = {
       sqlInjectionCheck: false,
       xssProtection: true
     },
+
     security_protection: {
       dataMasking: false,
       secureDeletion: false,
       encryptionLevel: 'standard'
     },
+
     channels: { email: false, sms: false, whatsapp: false, push: true },
+
     alert_config: {
       lowStock: { enabled: false, threshold: 10 },
       dailySummary: { enabled: false, time: '18:00' },
@@ -91,14 +105,15 @@ const Store = {
       pendingPayments: { enabled: false }
     },
 
-    // ✅ DEFAULTS TICKET PRO + NUEVO showUnitPrice
+    // Tickets pro + pago/cambio + unit price
     ticket_config: {
       showLogo: true,
       showDate: true,
       showCashier: true,
       showCustomer: false,
       autoPrint: false,
-      showUnitPrice: true,     // NUEVO
+      showUnitPrice: true,
+      showPayment: true,
       header: 'Stock Desk',
       footer: 'Gracias por su compra',
       width: '80mm'
@@ -106,23 +121,26 @@ const Store = {
   },
 
   init() {
-    console.log('[PKG] Store: Initializing Safe Load...');
-
+    // Inicializa listas vacías si faltan (sin pisar configs)
     Object.values(this.KEYS).forEach(key => {
       if (!localStorage.getItem(key)) {
-        const isExcluded = [
+        const configKeys = [
           this.KEYS.SETTINGS,
           this.KEYS.SECURITY,
           this.KEYS.SECURITY_ACCESS,
+          this.KEYS.SECURITY_THREATS,
+          this.KEYS.SECURITY_PROTECTION,
+          this.KEYS.CHANNELS,
           this.KEYS.ALERT_CONFIG,
-          this.KEYS.TICKET_CONFIG,
-          this.KEYS.ROLES
-        ].includes(key);
-
-        if (!isExcluded && !this._getDefaultForKey(key)) this.set(key, []);
+          this.KEYS.TICKET_CONFIG
+        ];
+        if (!configKeys.includes(key) && key !== this.KEYS.ROLES) {
+          this.set(key, []);
+        }
       }
     });
 
+    // Safe load defaults
     this._safeLoad(this.KEYS.SETTINGS, this.DEFAULTS.settings);
     this._safeLoad(this.KEYS.WAREHOUSES, this.DEFAULTS.warehouses);
     this._safeLoad(this.KEYS.SECURITY, this.DEFAULTS.security);
@@ -134,13 +152,6 @@ const Store = {
     this._safeLoad(this.KEYS.TICKET_CONFIG, this.DEFAULTS.ticket_config);
 
     this.cleanupLogs();
-    console.log('[OK] Store: Initialization Complete.');
-  },
-
-  _getDefaultForKey(storageKey) {
-    if (storageKey === this.KEYS.SETTINGS) return this.DEFAULTS.settings;
-    if (storageKey === this.KEYS.SECURITY) return this.DEFAULTS.security;
-    return null;
   },
 
   _safeLoad(key, defaults) {
@@ -167,8 +178,7 @@ const Store = {
     if (isObject(target) && isObject(source)) {
       Object.keys(source).forEach(key => {
         if (isObject(source[key])) {
-          if (!(key in target)) output[key] = source[key];
-          else output[key] = this._deepMerge(target[key], source[key]);
+          output[key] = (key in target) ? this._deepMerge(target[key], source[key]) : source[key];
         } else {
           output[key] = source[key];
         }
@@ -186,8 +196,8 @@ const Store = {
     [this.KEYS.SECURITY_LOGS, this.KEYS.AUDIT_LOGS].forEach(key => {
       const logs = this.get(key) || [];
       if (Array.isArray(logs) && logs.length > 0) {
-        const cleanLogs = logs.filter(l => new Date(l.date) >= cutoffDate);
-        if (cleanLogs.length !== logs.length) this.set(key, cleanLogs);
+        const clean = logs.filter(l => new Date(l.date) >= cutoffDate);
+        if (clean.length !== logs.length) this.set(key, clean);
       }
     });
   },
@@ -209,185 +219,41 @@ const Store = {
     } catch (e) {
       console.error(`Store.set error (${key}):`, e);
       if (e.name === 'QuotaExceededError') {
-        if (typeof Components !== 'undefined' && Components.toast) Components.toast('[WARN] Memoria llena. Borra historial antiguo.', 'warning', 5000);
-        else alert('Memoria llena. Borra historial antiguo.');
+        if (typeof Components !== 'undefined' && Components.toast) {
+          Components.toast('[WARN] Memoria llena. Borra historial antiguo.', 'warning', 5000);
+        } else {
+          alert('Memoria llena. Borra historial antiguo.');
+        }
       }
       return false;
     }
   },
 
-  device: { get() { return Store.get(Store.KEYS.DEVICE); }, set(device) { Store.set(Store.KEYS.DEVICE, device); } },
+  device: {
+    get() { return Store.get(Store.KEYS.DEVICE); },
+    set(device) { Store.set(Store.KEYS.DEVICE, device); }
+  },
 
   products: {
     getAll() { return Store.get(Store.KEYS.PRODUCTS) || []; },
     getById(id) { return this.getAll().find(p => p.id === id); },
     getByWarehouse(warehouseId) { return this.getAll().filter(p => p.warehouseId === warehouseId); },
+
     add(product) {
       const products = this.getAll();
       const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-      const newProduct = { ...product, id: newId, warehouseId: product.warehouseId || 1, barcode: product.barcode || '', sku: product.sku || `SKU-${newId}`, lot: product.lot || '', expirationDate: product.expirationDate || '', serialNumbers: product.serialNumbers || [], unitOfMeasure: product.unitOfMeasure || 'unidad', minStock: product.minStock || 5, createdAt: new Date().toISOString() };
+
+      const newProduct = {
+        ...product,
+        id: newId,
+        warehouseId: product.warehouseId || 1,
+        barcode: product.barcode || '',
+        sku: product.sku || `SKU-${newId}`,
+        lot: product.lot || '',
+        expirationDate: product.expirationDate || '',
+        minStock: product.minStock || 5,
+        createdAt: new Date().toISOString()
+      };
+
       products.push(newProduct);
-      Store.set(Store.KEYS.PRODUCTS, products);
-      Store.kardex.add(newId, 'entrada', product.stock || 0, 'Stock inicial');
-      return newProduct;
-    },
-    update(id, data) {
-      const products = this.getAll();
-      const index = products.findIndex(p => p.id === id);
-      if (index !== -1) {
-        const oldStock = products[index].stock;
-        products[index] = { ...products[index], ...data };
-        Store.set(Store.KEYS.PRODUCTS, products);
-        if (data.stock !== undefined && data.stock !== oldStock) {
-          const diff = data.stock - oldStock;
-          Store.kardex.add(id, diff > 0 ? 'entrada' : 'salida', Math.abs(diff), 'Ajuste manual');
-        }
-        return products[index];
-      }
-      return null;
-    },
-    delete(id) { Store.set(Store.KEYS.PRODUCTS, this.getAll().filter(p => p.id !== id)); return true; },
-    updateStock(id, quantity, reason = 'Venta') {
-      const products = this.getAll();
-      const index = products.findIndex(p => p.id === id);
-      if (index !== -1) {
-        products[index].stock = Math.max(0, products[index].stock - quantity);
-        Store.set(Store.KEYS.PRODUCTS, products);
-        Store.kardex.add(id, 'salida', quantity, reason);
-        return products[index];
-      }
-      return null;
-    },
-    search(query) {
-      const q = (query || '').toLowerCase();
-      return this.getAll().filter(p =>
-        (p.name || '').toLowerCase().includes(q) ||
-        (p.category || '').toLowerCase().includes(q) ||
-        (p.barcode && p.barcode.includes(q)) ||
-        (p.sku && p.sku.toLowerCase().includes(q))
-      );
-    }
-  },
-
-  warehouses: {
-    getAll() { return Store.get(Store.KEYS.WAREHOUSES) || []; },
-    getById(id) { return this.getAll().find(w => w.id === id); },
-    add(warehouse) {
-      const warehouses = this.getAll();
-      const newId = warehouses.length > 0 ? Math.max(...warehouses.map(w => w.id)) + 1 : 1;
-      warehouses.push({ ...warehouse, id: newId });
-      Store.set(Store.KEYS.WAREHOUSES, warehouses);
-      return { ...warehouse, id: newId };
-    },
-    update(id, data) {
-      const warehouses = this.getAll();
-      const index = warehouses.findIndex(w => w.id === id);
-      if (index !== -1) {
-        warehouses[index] = { ...warehouses[index], ...data };
-        Store.set(Store.KEYS.WAREHOUSES, warehouses);
-        return warehouses[index];
-      }
-      return null;
-    },
-    delete(id) { Store.set(Store.KEYS.WAREHOUSES, this.getAll().filter(w => w.id !== id)); return true; }
-  },
-
-  transfers: {
-    getAll() { return Store.get(Store.KEYS.TRANSFERS) || []; },
-    add(transfer) {
-      const transfers = this.getAll();
-      const newTransfer = { id: Date.now(), date: new Date().toISOString(), status: 'completed', ...transfer };
-      transfers.push(newTransfer);
-      Store.set(Store.KEYS.TRANSFERS, transfers);
-      return newTransfer;
-    }
-  },
-
-  kardex: {
-    getAll() { return Store.get(Store.KEYS.KARDEX) || []; },
-    getByProduct(productId) { return this.getAll().filter(k => k.productId === productId); },
-    add(productId, type, quantity, reason) {
-      const entries = this.getAll();
-      const product = Store.products.getById(productId);
-      entries.push({ id: Date.now(), productId, productName: product?.name || 'Producto', type, quantity, reason, balance: product?.stock || 0, date: new Date().toISOString() });
-      Store.set(Store.KEYS.KARDEX, entries);
-    }
-  },
-
-  inventoryCounts: {
-    getAll() { return Store.get(Store.KEYS.INVENTORY_COUNTS) || []; },
-    add(count) { const counts = this.getAll(); counts.push({ id: Date.now(), date: new Date().toISOString(), ...count }); Store.set(Store.KEYS.INVENTORY_COUNTS, counts); }
-  },
-
-  kits: {
-    getAll() { return Store.get(Store.KEYS.KITS) || []; },
-    add(kit) { const kits = this.getAll(); const newId = kits.length > 0 ? Math.max(...kits.map(k => k.id)) + 1 : 1; kits.push({ ...kit, id: newId }); Store.set(Store.KEYS.KITS, kits); return { ...kit, id: newId }; },
-    delete(id) { Store.set(Store.KEYS.KITS, this.getAll().filter(k => k.id !== id)); return true; }
-  },
-
-  sales: {
-    getAll() { return Store.get(Store.KEYS.SALES) || []; },
-    getById(id) { return this.getAll().find(s => s.id === id); },
-    add(sale) {
-      const sales = this.getAll();
-      const newSale = { id: Date.now(), date: new Date().toISOString(), ...sale };
-      sales.push(newSale);
-      Store.set(Store.KEYS.SALES, sales);
-
-      Store.transactions.add({ type: 'income', category: 'Ventas', amount: sale.total, description: `Venta #${newSale.id}` });
-
-      const shifts = Store.get(Store.KEYS.SHIFTS) || [];
-      const openIdx = shifts.findIndex(s => s.status === 'open');
-      if (openIdx !== -1) {
-        shifts[openIdx].sales = (shifts[openIdx].sales || 0) + (sale.total || 0);
-        Store.set(Store.KEYS.SHIFTS, shifts);
-      }
-
-      return newSale;
-    },
-    getByDateRange(startDate, endDate) { return this.getAll().filter(s => { const d = new Date(s.date); return d >= startDate && d <= endDate; }); },
-    getTodaySales() { const today = new Date(); today.setHours(0, 0, 0, 0); const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1); return this.getByDateRange(today, tomorrow); }
-  },
-
-  transactions: {
-    getAll() { return Store.get(Store.KEYS.TRANSACTIONS) || []; },
-    add(transaction) { const t = this.getAll(); t.push({ id: Date.now(), date: new Date().toISOString(), ...transaction }); Store.set(Store.KEYS.TRANSACTIONS, t); },
-    getByType(type) { return this.getAll().filter(t => t.type === type); },
-    getByDateRange(start, end) { return this.getAll().filter(t => { const d = new Date(t.date); return d >= new Date(start) && d <= new Date(end); }); }
-  },
-
-  expenses: {
-    getAll() { return Store.get(Store.KEYS.EXPENSES) || []; },
-    add(expense) {
-      const expenses = this.getAll();
-      const newExpense = { id: Date.now(), date: new Date().toISOString(), ...expense };
-      expenses.push(newExpense);
-      Store.set(Store.KEYS.EXPENSES, expenses);
-      Store.transactions.add({ type: 'expense', category: expense.category, amount: expense.amount, description: expense.description });
-      return newExpense;
-    }
-  },
-
-  settings: {
-    get() { return Store.get(Store.KEYS.SETTINGS) || {}; },
-    update(data) { const s = this.get(); Store.set(Store.KEYS.SETTINGS, { ...s, ...data }); }
-  },
-
-  security: {
-    get() { return Store.get(Store.KEYS.SECURITY) || Store.DEFAULTS.security; },
-    update(data) { const s = this.get(); Store.set(Store.KEYS.SECURITY, { ...s, ...data }); },
-    getLogs() { return Store.get(Store.KEYS.SECURITY_LOGS) || []; },
-    addLog(event, type = 'general') {
-      const logs = this.getLogs();
-      logs.push({ id: Date.now(), event, type, date: new Date().toISOString(), ip: '192.168.1.' + Math.floor(Math.random() * 255), device: Store.device.get() || 'desktop' });
-      Store.set(Store.KEYS.SECURITY_LOGS, logs.slice(-500));
-    },
-    clearLogs() { Store.set(Store.KEYS.SECURITY_LOGS, []); }
-  }
-};
-
-function isObject(item) {
-  return (item && typeof item === 'object' && !Array.isArray(item));
-}
-
-// No llamar Store.init() aquí. App.init() lo hace.
+      Store.set
