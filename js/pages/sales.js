@@ -6,27 +6,45 @@ const SalesPage = {
   cart: [],
   searchQuery: '',
 
+  _getPermissions() {
+    const user = Store.get(Store.KEYS.USER);
+    if (!user?.role) return [];
+    let roles = Store.get(Store.KEYS.ROLES);
+    if (!roles || roles.length === 0) {
+      roles = [
+        { name: 'Administrador', permissions: ['all'] },
+        { name: 'Gerente', permissions: ['sales', 'sales.discount'] },
+        { name: 'Cajero', permissions: ['sales'] }
+      ];
+    }
+    const role = roles.find(r => r.name === user.role);
+    const perms = role?.permissions || [];
+    const set = new Set(perms);
+    if (set.has('all')) return ['all'];
+    if (set.has('sales')) set.add('sales.discount');
+    return Array.from(set);
+  },
+
   render() {
     const products = this.searchQuery ? Store.products.search(this.searchQuery) : Store.products.getAll();
     const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const device = Store.device.get();
     const isMobile = device === 'mobile';
-    const user = Store.get(Store.KEYS.USER);
-    const isAdmin = user && (user.role === 'Administrador' || user.role === 'Gerente');
+    const perms = this._getPermissions();
+    const canDiscount = perms.includes('all') || perms.includes('sales.discount');
 
     const content = isMobile
-      ? this.renderMobile(products, total, isAdmin)
-      : this.renderDesktop(products, total, isAdmin);
+      ? this.renderMobile(products, total, canDiscount)
+      : this.renderDesktop(products, total, canDiscount);
 
     return LayoutComponents.layout(content, 'sales');
   },
 
   rerender() {
-    // FIX UX: re-render sin llenar historial y manteniendo middleware
     Router.navigate('sales', {}, { push: false });
   },
 
-  renderDesktop(products, total, isAdmin) {
+  renderDesktop(products, total, canDiscount) {
     return `
 <div class="animate-fade-in h-[calc(100vh-4rem)]">
   <div class="mb-4">
@@ -34,21 +52,21 @@ const SalesPage = {
     <p class="text-slate-500 text-sm">Procesa ventas rápidamente</p>
   </div>
   <div class="grid lg:grid-cols-2 gap-4 h-[calc(100%-5rem)]">
-    ${this.renderProductsPanel(products, isAdmin)}
-    ${this.renderCartPanel(total)}
+    ${this.renderProductsPanel(products)}
+    ${this.renderCartPanel(total, canDiscount)}
   </div>
 </div>
 `;
   },
 
-  renderMobile(products, total, isAdmin) {
+  renderMobile(products, total, canDiscount) {
     return `
 <div class="animate-fade-in pb-32">
   <div class="mb-4">
     <h1 class="text-2xl font-bold text-slate-900">Punto de Venta</h1>
   </div>
 
-  ${this.renderProductsPanel(products, isAdmin)}
+  ${this.renderProductsPanel(products)}
 
   ${this.cart.length > 0 ? `
   <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-lg z-30">
@@ -60,7 +78,7 @@ const SalesPage = {
       <button onclick="SalesPage.showCartModal()" class="flex-1 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl transition btn-press">
         Ver Carrito
       </button>
-      <button onclick="SalesPage.checkout()" class="flex-1 py-3 bg-orange-500 text-white font-semibold rounded-xl shadow-lg transition btn-press">
+      <button onclick="SalesPage.checkout(${canDiscount})" class="flex-1 py-3 bg-orange-500 text-white font-semibold rounded-xl shadow-lg transition btn-press">
         Cobrar
       </button>
     </div>
@@ -70,7 +88,7 @@ const SalesPage = {
 `;
   },
 
-  renderProductsPanel(products, isAdmin) {
+  renderProductsPanel(products) {
     return `
 <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
   <div class="p-3 md:p-4 border-b border-slate-100">
@@ -106,13 +124,6 @@ const SalesPage = {
     <div class="h-full flex flex-col items-center justify-center text-slate-400 py-8">
       ${Components.icons.package.replace('w-5 h-5', 'w-12 h-12 mb-3 opacity-50')}
       <p>No hay productos disponibles</p>
-      ${isAdmin ? `
-      <button onclick="Router.navigate('products')" class="mt-2 text-orange-600 text-sm font-medium hover:underline">
-        Agregar productos
-      </button>
-      ` : `
-      <p class="text-xs mt-2 text-slate-500">Contacte al administrador para surtir stock</p>
-      `}
     </div>
     `}
   </div>
@@ -120,7 +131,7 @@ const SalesPage = {
 `;
   },
 
-  renderCartPanel(total) {
+  renderCartPanel(total, canDiscount) {
     return `
 <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
   <div class="p-3 md:p-4 border-b border-slate-100 flex items-center justify-between">
@@ -128,9 +139,7 @@ const SalesPage = {
       ${Components.icons.cart.replace('w-5 h-5', 'w-5 h-5 text-orange-500')}
       Carrito
     </h3>
-    ${this.cart.length > 0 ? `
-    <button onclick="SalesPage.clearCart()" class="text-sm text-red-500 hover:text-red-600">Vaciar</button>
-    ` : ''}
+    ${this.cart.length > 0 ? `<button onclick="SalesPage.clearCart()" class="text-sm text-red-500 hover:text-red-600">Vaciar</button>` : ''}
   </div>
 
   <div class="flex-1 overflow-y-auto p-3 md:p-4">
@@ -142,26 +151,15 @@ const SalesPage = {
           <h4 class="font-medium text-slate-900 text-sm truncate">${item.name}</h4>
           <p class="text-xs text-slate-500">$${item.price.toFixed(2)} c/u</p>
         </div>
-
         <div class="flex items-center gap-1 md:gap-2">
-          <button onclick="SalesPage.updateQuantity(${index}, -1)"
-            class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-100 transition">
-            ${Components.icons.minus}
-          </button>
+          <button onclick="SalesPage.updateQuantity(${index}, -1)" class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-100 transition">${Components.icons.minus}</button>
           <span class="w-6 md:w-8 text-center font-semibold text-sm">${item.quantity}</span>
-          <button onclick="SalesPage.updateQuantity(${index}, 1)"
-            class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-100 transition">
-            ${Components.icons.plus.replace('w-5 h-5', 'w-4 h-4')}
-          </button>
+          <button onclick="SalesPage.updateQuantity(${index}, 1)" class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-100 transition">${Components.icons.plus.replace('w-5 h-5', 'w-4 h-4')}</button>
         </div>
-
         <div class="text-right w-16 md:w-20">
           <p class="font-bold text-slate-900 text-sm">$${(item.price * item.quantity).toFixed(2)}</p>
         </div>
-
-        <button onclick="SalesPage.removeFromCart(${index})" class="p-1 text-slate-400 hover:text-red-500 transition">
-          ${Components.icons.close.replace('w-6 h-6', 'w-5 h-5')}
-        </button>
+        <button onclick="SalesPage.removeFromCart(${index})" class="p-1 text-slate-400 hover:text-red-500 transition">${Components.icons.close.replace('w-6 h-6', 'w-5 h-5')}</button>
       </div>
       `).join('')}
     </div>
@@ -178,14 +176,15 @@ const SalesPage = {
     <div class="grid grid-cols-2 gap-3 mb-3">
       <div>
         <label class="block text-xs font-medium text-slate-500 mb-1">Cliente</label>
-        <input type="text" id="pos-customer" placeholder="Público General"
-          class="w-full px-2 py-2 rounded-lg border border-slate-200 text-sm">
+        <input type="text" id="pos-customer" placeholder="Público General" class="w-full px-2 py-2 rounded-lg border border-slate-200 text-sm">
       </div>
+
       <div>
         <label class="block text-xs font-medium text-slate-500 mb-1">Descuento (%)</label>
         <input type="number" id="pos-discount" min="0" max="100" value="0"
-          onchange="SalesPage.updateTotal()"
-          class="w-full px-2 py-2 rounded-lg border border-slate-200 text-sm">
+          ${canDiscount ? 'onchange="SalesPage.updateTotal()"' : 'disabled'}
+          class="w-full px-2 py-2 rounded-lg border border-slate-200 text-sm ${canDiscount ? '' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}">
+        ${!canDiscount ? `<p class="text-[11px] text-slate-400 mt-1">Sin permiso para descuentos</p>` : ''}
       </div>
     </div>
 
@@ -199,7 +198,7 @@ const SalesPage = {
       <span class="font-bold text-xl text-orange-600" id="pos-total-display">$${total.toFixed(2)}</span>
     </div>
 
-    <button onclick="SalesPage.checkout()"
+    <button onclick="SalesPage.checkout(${canDiscount})"
       class="w-full py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-orange-500/30 transition btn-press flex items-center justify-center gap-2"
       ${this.cart.length === 0 ? 'disabled' : ''}>
       ${Components.icons.dollar} Cobrar
@@ -218,14 +217,13 @@ const SalesPage = {
     const product = Store.products.getById(productId);
     if (!product || product.stock === 0) return;
 
-    const existingIndex = this.cart.findIndex(item => item.id === productId);
-    if (existingIndex >= 0) {
-      if (this.cart[existingIndex].quantity < product.stock) this.cart[existingIndex].quantity++;
-      else { Components.toast('Stock insuficiente', 'warning'); return; }
+    const idx = this.cart.findIndex(i => i.id === productId);
+    if (idx >= 0) {
+      if (this.cart[idx].quantity < product.stock) this.cart[idx].quantity++;
+      else return Components.toast('Stock insuficiente', 'warning');
     } else {
       this.cart.push({ ...product, quantity: 1 });
     }
-
     Components.toast(`${product.name} agregado`, 'success');
     this.rerender();
   },
@@ -235,9 +233,11 @@ const SalesPage = {
     const product = Store.products.getById(item.id);
     const newQty = item.quantity + delta;
 
-    if (newQty <= 0) this.removeFromCart(index);
-    else if (newQty <= product.stock) { this.cart[index].quantity = newQty; this.rerender(); }
-    else Components.toast('Stock insuficiente', 'warning');
+    if (newQty <= 0) return this.removeFromCart(index);
+    if (newQty > product.stock) return Components.toast('Stock insuficiente', 'warning');
+
+    this.cart[index].quantity = newQty;
+    this.rerender();
   },
 
   removeFromCart(index) {
@@ -251,7 +251,7 @@ const SalesPage = {
   },
 
   showCartModal() {
-    const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = this.cart.reduce((s, it) => s + (it.price * it.quantity), 0);
     Components.modal({
       title: `Carrito (${this.cart.length} items)`,
       content: `
@@ -274,7 +274,6 @@ const SalesPage = {
   updateTotal() {
     const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     let discountPercent = parseFloat(document.getElementById('pos-discount')?.value) || 0;
-
     if (discountPercent < 0) discountPercent = 0;
     if (discountPercent > 100) discountPercent = 100;
 
@@ -287,11 +286,11 @@ const SalesPage = {
     if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
   },
 
-  checkout() {
+  checkout(canDiscount = true) {
     if (this.cart.length === 0) return;
 
     const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discountPercent = parseFloat(document.getElementById('pos-discount')?.value) || 0;
+    const discountPercent = canDiscount ? (parseFloat(document.getElementById('pos-discount')?.value) || 0) : 0;
     const discountAmount = subtotal * (discountPercent / 100);
     const total = Math.max(0, subtotal - discountAmount);
     const customer = document.getElementById('pos-customer')?.value || 'Público General';
@@ -310,10 +309,8 @@ const SalesPage = {
       confirmText: 'Confirmar',
       cancelText: 'Cancelar',
       onConfirm: () => {
-        // Actualizar stock
         this.cart.forEach(item => Store.products.updateStock(item.id, item.quantity));
 
-        // Guardar venta
         const sale = Store.sales.add({
           items: this.cart.map(i => ({ id: i.id, name: i.name, qty: i.quantity, price: i.price })),
           subtotal,
@@ -326,7 +323,6 @@ const SalesPage = {
         Components.toast('Venta realizada con éxito', 'success');
         this.rerender();
 
-        // Impresión
         if (window.TicketPrinter) {
           if (ticketCfg.autoPrint) {
             TicketPrinter.printSale(sale, { auto: true });
