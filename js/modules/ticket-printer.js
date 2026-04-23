@@ -8,12 +8,13 @@ window.TicketPrinter = {
     return {
       header: cfg.header ?? 'Stock Desk',
       footer: cfg.footer ?? 'Gracias por su compra',
-      width: cfg.width ?? '80mm',          // recomendado
+      width: cfg.width ?? '80mm',
       showLogo: cfg.showLogo ?? true,
       showDate: cfg.showDate ?? true,
       showCashier: cfg.showCashier ?? true,
       showCustomer: cfg.showCustomer ?? false,
-      autoPrint: cfg.autoPrint ?? false
+      autoPrint: cfg.autoPrint ?? false,
+      showUnitPrice: cfg.showUnitPrice ?? true // NUEVO
     };
   },
 
@@ -71,14 +72,14 @@ window.TicketPrinter = {
     const discount = Number(sale.discount ?? 0);
     const total = Number(sale.total ?? Math.max(0, subtotal - discount));
 
-    // Render items: 58mm usa layout por líneas; 80mm/A4 usa tabla
-    const itemsHTML = is58
-      ? items.map(i => {
-          const name = this._escapeHtml(i.name || '').trim();
-          const qty = Number(i.qty || 0);
-          const price = Number(i.price || 0);
-          const lineTotal = price * qty;
-          return `
+    // 58mm: layout por líneas
+    if (is58) {
+      const itemsHTML58 = items.map(i => {
+        const name = this._escapeHtml(i.name || '').trim();
+        const qty = Number(i.qty || 0);
+        const price = Number(i.price || 0);
+        const lineTotal = price * qty;
+        return `
 <div class="item58">
   <div class="name">${name}</div>
   <div class="meta">
@@ -87,33 +88,73 @@ window.TicketPrinter = {
   </div>
 </div>
 `;
-        }).join('')
-      : `
-<table>
-  <thead>
-    <tr>
-      <th>Producto</th>
-      <th class="r">Cant</th>
-      <th class="r">Importe</th>
-    </tr>
-  </thead>
-  <tbody>
-    ${items.map(i => {
+      }).join('');
+
+      return this._wrapHTML({
+        pageWidthCss, baseFont, titleFont, logoHTML,
+        header: cfg.header || settings.businessName || 'Mi Negocio',
+        businessName: settings.businessName || '',
+        ticketId: String(sale.id).slice(-6),
+        dateHTML, cashierHTML, customerHTML,
+        itemsHTML: itemsHTML58,
+        subtotal, discount, total,
+        footer: cfg.footer || 'Gracias por su compra',
+        autoPrint: !!options.autoPrint,
+        autoClose: !!options.autoClose
+      });
+    }
+
+    // 80mm / A4: tabla, opcionalmente columna precio unitario
+    const showUnitPrice = !!cfg.showUnitPrice;
+    const tableHeader = showUnitPrice
+      ? `<tr><th>Producto</th><th class="r">Cant</th><th class="r">P.Unit</th><th class="r">Importe</th></tr>`
+      : `<tr><th>Producto</th><th class="r">Cant</th><th class="r">Importe</th></tr>`;
+
+    const rows = items.map(i => {
       const name = this._escapeHtml(i.name || '');
       const qty = Number(i.qty || 0);
       const price = Number(i.price || 0);
-      return `
+      const lineTotal = price * qty;
+
+      return showUnitPrice
+        ? `
 <tr>
   <td class="wrap">${name}</td>
   <td class="r nowrap">${qty}</td>
-  <td class="r nowrap">${this.currency(price * qty)}</td>
+  <td class="r nowrap">${this.currency(price)}</td>
+  <td class="r nowrap">${this.currency(lineTotal)}</td>
+</tr>`
+        : `
+<tr>
+  <td class="wrap">${name}</td>
+  <td class="r nowrap">${qty}</td>
+  <td class="r nowrap">${this.currency(lineTotal)}</td>
 </tr>`;
-    }).join('')}
-  </tbody>
+    }).join('');
+
+    const itemsHTMLTable = `
+<table>
+  <thead>${tableHeader}</thead>
+  <tbody>${rows}</tbody>
 </table>
 `;
 
-    const content = `
+    return this._wrapHTML({
+      pageWidthCss, baseFont, titleFont, logoHTML,
+      header: cfg.header || settings.businessName || 'Mi Negocio',
+      businessName: settings.businessName || '',
+      ticketId: String(sale.id).slice(-6),
+      dateHTML, cashierHTML, customerHTML,
+      itemsHTML: itemsHTMLTable,
+      subtotal, discount, total,
+      footer: cfg.footer || 'Gracias por su compra',
+      autoPrint: !!options.autoPrint,
+      autoClose: !!options.autoClose
+    });
+  },
+
+  _wrapHTML({ pageWidthCss, baseFont, titleFont, logoHTML, header, businessName, ticketId, dateHTML, cashierHTML, customerHTML, itemsHTML, subtotal, discount, total, footer, autoPrint, autoClose }) {
+    return `
 <!doctype html>
 <html lang="es">
 <head>
@@ -131,11 +172,11 @@ window.TicketPrinter = {
   }
   .ticket {
     width: ${pageWidthCss};
-    padding: ${isA4 ? '16px 18px' : '10px 10px'};
+    padding: 10px 10px;
     box-sizing: border-box;
   }
   .center { text-align: center; }
-  .logo { max-width: ${is58 ? '90px' : '130px'}; max-height: 80px; object-fit: contain; display:block; margin: 0 auto 6px; }
+  .logo { max-width: 130px; max-height: 80px; object-fit: contain; display:block; margin: 0 auto 6px; }
   h1 { font-size: ${titleFont}px; margin: 0 0 4px; }
   .muted { color: #444; font-size: ${baseFont - 1}px; }
   .line { border-top: 1px dashed #000; margin: 8px 0; }
@@ -154,7 +195,7 @@ window.TicketPrinter = {
   .item58 { margin: 6px 0; }
   .item58 .name { font-weight: 600; word-break: break-word; overflow-wrap: anywhere; }
   .item58 .meta { display:flex; justify-content: space-between; gap: 8px; margin-top: 2px; }
-  /* Impresión: evita fondos extra */
+
   @media print {
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body { background: #fff !important; }
@@ -165,15 +206,13 @@ window.TicketPrinter = {
   <div class="ticket">
     <div class="center">
       ${logoHTML}
-      <h1>${this._escapeHtml(cfg.header || settings.businessName || 'Mi Negocio')}</h1>
-      ${settings.businessName ? `<div class="muted">${this._escapeHtml(settings.businessName)}</div>` : ''}
+      <h1>${this._escapeHtml(header)}</h1>
+      ${businessName ? `<div class="muted">${this._escapeHtml(businessName)}</div>` : ''}
     </div>
 
     <div class="line"></div>
 
-    <div class="row">
-      <span>Ticket</span><span class="r nowrap">#${String(sale.id).slice(-6)}</span>
-    </div>
+    <div class="row"><span>Ticket</span><span class="r nowrap">#${ticketId}</span></div>
     ${dateHTML}
     ${cashierHTML}
     ${customerHTML}
@@ -191,12 +230,12 @@ window.TicketPrinter = {
     </div>
 
     <div class="line"></div>
-    <div class="center footer">${this._escapeHtml(cfg.footer || 'Gracias por su compra')}</div>
+    <div class="center footer">${this._escapeHtml(footer)}</div>
   </div>
 
 <script>
-  const AUTO_PRINT = ${options.autoPrint ? 'true' : 'false'};
-  const AUTO_CLOSE = ${options.autoClose ? 'true' : 'false'};
+  const AUTO_PRINT = ${autoPrint ? 'true' : 'false'};
+  const AUTO_CLOSE = ${autoClose ? 'true' : 'false'};
 
   if (AUTO_PRINT) {
     setTimeout(() => {
@@ -214,7 +253,6 @@ window.TicketPrinter = {
 </body>
 </html>
 `;
-    return content;
   },
 
   openTicketWindow(html) {
@@ -233,13 +271,11 @@ window.TicketPrinter = {
     const cfg = this.getConfig();
     const html = this.buildTicketHTML(sale, {
       autoPrint: auto,
-      autoClose: auto,        // intentamos cerrar
+      autoClose: auto,
       width: cfg.width
     });
-
     const w = this.openTicketWindow(html);
     if (!w) return;
-
     if (!auto) w.focus();
   },
 
@@ -260,7 +296,7 @@ window.TicketPrinter = {
       date: new Date().toISOString(),
       customer: 'Público General',
       items: [
-        { name: 'Producto con nombre largo para probar que NO se corte en 58mm', qty: 2, price: 10 },
+        { name: 'Producto con nombre largo para probar que NO se corte en 58mm y que se reorganice', qty: 2, price: 10 },
         { name: 'Otro producto', qty: 1, price: 5.5 }
       ],
       subtotal: 25.5,
