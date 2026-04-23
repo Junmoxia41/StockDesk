@@ -25,7 +25,6 @@ const Store = {
     SECURITY_LOGS: 'stockdesk_security_logs',
     SECURITY_BACKUPS: 'stockdesk_backups',
     SECURITY_SESSIONS: 'stockdesk_sessions',
-
     NOTIFICATIONS: 'stockdesk_notifications',
     CHANNELS: 'stockdesk_channels',
     ALERT_CONFIG: 'stockdesk_alert_config',
@@ -41,7 +40,6 @@ const Store = {
     SHIFTS: 'stockdesk_shifts',
     REGISTERS: 'stockdesk_registers',
     AUDIT_LOGS: 'stockdesk_audit_logs',
-
     SECURITY_ACCESS: 'stockdesk_security_access',
     SECURITY_PROTECTION: 'stockdesk_security_protection',
     SECURITY_THREATS: 'stockdesk_security_threats'
@@ -55,9 +53,7 @@ const Store = {
       logRetention: 30,
       logo: null
     },
-
     warehouses: [{ id: 1, name: 'Almacén Principal', location: 'Principal', isDefault: true }],
-
     security: {
       twoFactorEnabled: false,
       lockOnFailure: true,
@@ -67,7 +63,6 @@ const Store = {
       backupRetention: 30,
       sessionTimeout: 60
     },
-
     security_access: {
       ipWhitelistEnabled: false,
       ips: [],
@@ -76,7 +71,6 @@ const Store = {
       endTime: '18:00',
       geoBlockEnabled: false
     },
-
     security_threats: {
       bruteForceProtection: true,
       maxAttempts: 5,
@@ -84,15 +78,12 @@ const Store = {
       sqlInjectionCheck: false,
       xssProtection: true
     },
-
     security_protection: {
       dataMasking: false,
       secureDeletion: false,
       encryptionLevel: 'standard'
     },
-
     channels: { email: false, sms: false, whatsapp: false, push: true },
-
     alert_config: {
       lowStock: { enabled: false, threshold: 10 },
       dailySummary: { enabled: false, time: '18:00' },
@@ -100,23 +91,23 @@ const Store = {
       pendingPayments: { enabled: false }
     },
 
-    // FIX: defaults completos de tickets + autoPrint + showCustomer
+    // ✅ DEFAULTS TICKET PRO + NUEVO showUnitPrice
     ticket_config: {
       showLogo: true,
       showDate: true,
       showCashier: true,
       showCustomer: false,
       autoPrint: false,
+      showUnitPrice: true,     // NUEVO
       header: 'Stock Desk',
       footer: 'Gracias por su compra',
-      width: '80mm' // recomendado por defecto
+      width: '80mm'
     }
   },
 
   init() {
     console.log('[PKG] Store: Initializing Safe Load...');
 
-    // Inicializar keys listas como [] si faltan (excepto objetos de config)
     Object.values(this.KEYS).forEach(key => {
       if (!localStorage.getItem(key)) {
         const isExcluded = [
@@ -128,13 +119,10 @@ const Store = {
           this.KEYS.ROLES
         ].includes(key);
 
-        if (!isExcluded && !this._getDefaultForKey(key)) {
-          this.set(key, []);
-        }
+        if (!isExcluded && !this._getDefaultForKey(key)) this.set(key, []);
       }
     });
 
-    // Safe load defaults
     this._safeLoad(this.KEYS.SETTINGS, this.DEFAULTS.settings);
     this._safeLoad(this.KEYS.WAREHOUSES, this.DEFAULTS.warehouses);
     this._safeLoad(this.KEYS.SECURITY, this.DEFAULTS.security);
@@ -155,7 +143,6 @@ const Store = {
     return null;
   },
 
-  // FIX: safeLoad arreglado para arrays vacíos
   _safeLoad(key, defaults) {
     const current = this.get(key);
 
@@ -165,9 +152,7 @@ const Store = {
     }
 
     if (Array.isArray(defaults)) {
-      if (!Array.isArray(current) || current.length === 0) {
-        this.set(key, defaults);
-      }
+      if (!Array.isArray(current) || current.length === 0) this.set(key, defaults);
       return;
     }
 
@@ -195,7 +180,6 @@ const Store = {
   cleanupLogs() {
     const settings = this.get(this.KEYS.SETTINGS) || {};
     const retentionDays = parseInt(settings.logRetention) || 30;
-
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
@@ -225,50 +209,28 @@ const Store = {
     } catch (e) {
       console.error(`Store.set error (${key}):`, e);
       if (e.name === 'QuotaExceededError') {
-        if (typeof Components !== 'undefined' && Components.toast) {
-          Components.toast('[WARN] Memoria llena. Borra historial antiguo.', 'warning', 5000);
-        } else {
-          alert('Memoria llena. Borra historial antiguo.');
-        }
+        if (typeof Components !== 'undefined' && Components.toast) Components.toast('[WARN] Memoria llena. Borra historial antiguo.', 'warning', 5000);
+        else alert('Memoria llena. Borra historial antiguo.');
       }
       return false;
     }
   },
 
-  device: {
-    get() { return Store.get(Store.KEYS.DEVICE); },
-    set(device) { Store.set(Store.KEYS.DEVICE, device); }
-  },
+  device: { get() { return Store.get(Store.KEYS.DEVICE); }, set(device) { Store.set(Store.KEYS.DEVICE, device); } },
 
   products: {
     getAll() { return Store.get(Store.KEYS.PRODUCTS) || []; },
     getById(id) { return this.getAll().find(p => p.id === id); },
     getByWarehouse(warehouseId) { return this.getAll().filter(p => p.warehouseId === warehouseId); },
-
     add(product) {
       const products = this.getAll();
       const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-
-      const newProduct = {
-        ...product,
-        id: newId,
-        warehouseId: product.warehouseId || 1,
-        barcode: product.barcode || '',
-        sku: product.sku || `SKU-${newId}`,
-        lot: product.lot || '',
-        expirationDate: product.expirationDate || '',
-        serialNumbers: product.serialNumbers || [],
-        unitOfMeasure: product.unitOfMeasure || 'unidad',
-        minStock: product.minStock || 5,
-        createdAt: new Date().toISOString()
-      };
-
+      const newProduct = { ...product, id: newId, warehouseId: product.warehouseId || 1, barcode: product.barcode || '', sku: product.sku || `SKU-${newId}`, lot: product.lot || '', expirationDate: product.expirationDate || '', serialNumbers: product.serialNumbers || [], unitOfMeasure: product.unitOfMeasure || 'unidad', minStock: product.minStock || 5, createdAt: new Date().toISOString() };
       products.push(newProduct);
       Store.set(Store.KEYS.PRODUCTS, products);
       Store.kardex.add(newId, 'entrada', product.stock || 0, 'Stock inicial');
       return newProduct;
     },
-
     update(id, data) {
       const products = this.getAll();
       const index = products.findIndex(p => p.id === id);
@@ -276,7 +238,6 @@ const Store = {
         const oldStock = products[index].stock;
         products[index] = { ...products[index], ...data };
         Store.set(Store.KEYS.PRODUCTS, products);
-
         if (data.stock !== undefined && data.stock !== oldStock) {
           const diff = data.stock - oldStock;
           Store.kardex.add(id, diff > 0 ? 'entrada' : 'salida', Math.abs(diff), 'Ajuste manual');
@@ -285,12 +246,7 @@ const Store = {
       }
       return null;
     },
-
-    delete(id) {
-      Store.set(Store.KEYS.PRODUCTS, this.getAll().filter(p => p.id !== id));
-      return true;
-    },
-
+    delete(id) { Store.set(Store.KEYS.PRODUCTS, this.getAll().filter(p => p.id !== id)); return true; },
     updateStock(id, quantity, reason = 'Venta') {
       const products = this.getAll();
       const index = products.findIndex(p => p.id === id);
@@ -302,7 +258,6 @@ const Store = {
       }
       return null;
     },
-
     search(query) {
       const q = (query || '').toLowerCase();
       return this.getAll().filter(p =>
@@ -317,7 +272,6 @@ const Store = {
   warehouses: {
     getAll() { return Store.get(Store.KEYS.WAREHOUSES) || []; },
     getById(id) { return this.getAll().find(w => w.id === id); },
-
     add(warehouse) {
       const warehouses = this.getAll();
       const newId = warehouses.length > 0 ? Math.max(...warehouses.map(w => w.id)) + 1 : 1;
@@ -325,7 +279,6 @@ const Store = {
       Store.set(Store.KEYS.WAREHOUSES, warehouses);
       return { ...warehouse, id: newId };
     },
-
     update(id, data) {
       const warehouses = this.getAll();
       const index = warehouses.findIndex(w => w.id === id);
@@ -336,11 +289,7 @@ const Store = {
       }
       return null;
     },
-
-    delete(id) {
-      Store.set(Store.KEYS.WAREHOUSES, this.getAll().filter(w => w.id !== id));
-      return true;
-    }
+    delete(id) { Store.set(Store.KEYS.WAREHOUSES, this.getAll().filter(w => w.id !== id)); return true; }
   },
 
   transfers: {
@@ -360,63 +309,33 @@ const Store = {
     add(productId, type, quantity, reason) {
       const entries = this.getAll();
       const product = Store.products.getById(productId);
-      entries.push({
-        id: Date.now(),
-        productId,
-        productName: product?.name || 'Producto',
-        type,
-        quantity,
-        reason,
-        balance: product?.stock || 0,
-        date: new Date().toISOString()
-      });
+      entries.push({ id: Date.now(), productId, productName: product?.name || 'Producto', type, quantity, reason, balance: product?.stock || 0, date: new Date().toISOString() });
       Store.set(Store.KEYS.KARDEX, entries);
     }
   },
 
   inventoryCounts: {
     getAll() { return Store.get(Store.KEYS.INVENTORY_COUNTS) || []; },
-    add(count) {
-      const counts = this.getAll();
-      counts.push({ id: Date.now(), date: new Date().toISOString(), ...count });
-      Store.set(Store.KEYS.INVENTORY_COUNTS, counts);
-    }
+    add(count) { const counts = this.getAll(); counts.push({ id: Date.now(), date: new Date().toISOString(), ...count }); Store.set(Store.KEYS.INVENTORY_COUNTS, counts); }
   },
 
   kits: {
     getAll() { return Store.get(Store.KEYS.KITS) || []; },
-    add(kit) {
-      const kits = this.getAll();
-      const newId = kits.length > 0 ? Math.max(...kits.map(k => k.id)) + 1 : 1;
-      kits.push({ ...kit, id: newId });
-      Store.set(Store.KEYS.KITS, kits);
-      return { ...kit, id: newId };
-    },
-    delete(id) {
-      Store.set(Store.KEYS.KITS, this.getAll().filter(k => k.id !== id));
-      return true;
-    }
+    add(kit) { const kits = this.getAll(); const newId = kits.length > 0 ? Math.max(...kits.map(k => k.id)) + 1 : 1; kits.push({ ...kit, id: newId }); Store.set(Store.KEYS.KITS, kits); return { ...kit, id: newId }; },
+    delete(id) { Store.set(Store.KEYS.KITS, this.getAll().filter(k => k.id !== id)); return true; }
   },
 
   sales: {
     getAll() { return Store.get(Store.KEYS.SALES) || []; },
     getById(id) { return this.getAll().find(s => s.id === id); },
-
     add(sale) {
       const sales = this.getAll();
       const newSale = { id: Date.now(), date: new Date().toISOString(), ...sale };
       sales.push(newSale);
       Store.set(Store.KEYS.SALES, sales);
 
-      // Contabilidad
-      Store.transactions.add({
-        type: 'income',
-        category: 'Ventas',
-        amount: sale.total,
-        description: `Venta #${newSale.id}`
-      });
+      Store.transactions.add({ type: 'income', category: 'Ventas', amount: sale.total, description: `Venta #${newSale.id}` });
 
-      // FIX: sumar ventas al turno activo (si existe)
       const shifts = Store.get(Store.KEYS.SHIFTS) || [];
       const openIdx = shifts.findIndex(s => s.status === 'open');
       if (openIdx !== -1) {
@@ -426,37 +345,15 @@ const Store = {
 
       return newSale;
     },
-
-    getByDateRange(startDate, endDate) {
-      return this.getAll().filter(s => {
-        const saleDate = new Date(s.date);
-        return saleDate >= startDate && saleDate <= endDate;
-      });
-    },
-
-    getTodaySales() {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      return this.getByDateRange(today, tomorrow);
-    }
+    getByDateRange(startDate, endDate) { return this.getAll().filter(s => { const d = new Date(s.date); return d >= startDate && d <= endDate; }); },
+    getTodaySales() { const today = new Date(); today.setHours(0, 0, 0, 0); const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1); return this.getByDateRange(today, tomorrow); }
   },
 
   transactions: {
     getAll() { return Store.get(Store.KEYS.TRANSACTIONS) || []; },
-    add(transaction) {
-      const transactions = this.getAll();
-      transactions.push({ id: Date.now(), date: new Date().toISOString(), ...transaction });
-      Store.set(Store.KEYS.TRANSACTIONS, transactions);
-    },
+    add(transaction) { const t = this.getAll(); t.push({ id: Date.now(), date: new Date().toISOString(), ...transaction }); Store.set(Store.KEYS.TRANSACTIONS, t); },
     getByType(type) { return this.getAll().filter(t => t.type === type); },
-    getByDateRange(start, end) {
-      return this.getAll().filter(t => {
-        const date = new Date(t.date);
-        return date >= new Date(start) && date <= new Date(end);
-      });
-    }
+    getByDateRange(start, end) { return this.getAll().filter(t => { const d = new Date(t.date); return d >= new Date(start) && d <= new Date(end); }); }
   },
 
   expenses: {
@@ -466,117 +363,26 @@ const Store = {
       const newExpense = { id: Date.now(), date: new Date().toISOString(), ...expense };
       expenses.push(newExpense);
       Store.set(Store.KEYS.EXPENSES, expenses);
-
-      Store.transactions.add({
-        type: 'expense',
-        category: expense.category,
-        amount: expense.amount,
-        description: expense.description
-      });
-
+      Store.transactions.add({ type: 'expense', category: expense.category, amount: expense.amount, description: expense.description });
       return newExpense;
-    }
-  },
-
-  payroll: {
-    getAll() { return Store.get(Store.KEYS.PAYROLL) || []; },
-    getEmployees() { return this.getAll().filter(p => p.type === 'employee'); },
-    getPayments() { return this.getAll().filter(p => p.type === 'payment'); },
-
-    addEmployee(employee) {
-      const payroll = this.getAll();
-      const newId = payroll.length > 0 ? Math.max(...payroll.map(p => p.id)) + 1 : 1;
-      payroll.push({ id: newId, type: 'employee', ...employee });
-      Store.set(Store.KEYS.PAYROLL, payroll);
-    },
-
-    addPayment(payment) {
-      const payroll = this.getAll();
-      payroll.push({ id: Date.now(), type: 'payment', date: new Date().toISOString(), ...payment });
-      Store.set(Store.KEYS.PAYROLL, payroll);
-
-      Store.transactions.add({
-        type: 'expense',
-        category: 'Nómina',
-        amount: payment.amount,
-        description: `Pago a ${payment.employeeName}`
-      });
-    }
-  },
-
-  budgets: {
-    getAll() { return Store.get(Store.KEYS.BUDGETS) || []; },
-    add(budget) {
-      const budgets = this.getAll();
-      const newId = budgets.length > 0 ? Math.max(...budgets.map(b => b.id)) + 1 : 1;
-      budgets.push({ id: newId, ...budget });
-      Store.set(Store.KEYS.BUDGETS, budgets);
-    },
-    update(id, data) {
-      const budgets = this.getAll();
-      const index = budgets.findIndex(b => b.id === id);
-      if (index !== -1) {
-        budgets[index] = { ...budgets[index], ...data };
-        Store.set(Store.KEYS.BUDGETS, budgets);
-      }
     }
   },
 
   settings: {
     get() { return Store.get(Store.KEYS.SETTINGS) || {}; },
-    update(data) {
-      const settings = this.get();
-      Store.set(Store.KEYS.SETTINGS, { ...settings, ...data });
-    }
+    update(data) { const s = this.get(); Store.set(Store.KEYS.SETTINGS, { ...s, ...data }); }
   },
 
   security: {
     get() { return Store.get(Store.KEYS.SECURITY) || Store.DEFAULTS.security; },
-    update(data) {
-      const security = this.get();
-      Store.set(Store.KEYS.SECURITY, { ...security, ...data });
-    },
-
+    update(data) { const s = this.get(); Store.set(Store.KEYS.SECURITY, { ...s, ...data }); },
     getLogs() { return Store.get(Store.KEYS.SECURITY_LOGS) || []; },
-
     addLog(event, type = 'general') {
       const logs = this.getLogs();
-      logs.push({
-        id: Date.now(),
-        event,
-        type,
-        date: new Date().toISOString(),
-        ip: '192.168.1.' + Math.floor(Math.random() * 255),
-        device: Store.device.get() || 'desktop'
-      });
+      logs.push({ id: Date.now(), event, type, date: new Date().toISOString(), ip: '192.168.1.' + Math.floor(Math.random() * 255), device: Store.device.get() || 'desktop' });
       Store.set(Store.KEYS.SECURITY_LOGS, logs.slice(-500));
     },
-
-    clearLogs() { Store.set(Store.KEYS.SECURITY_LOGS, []); },
-
-    getBackups() { return Store.get(Store.KEYS.SECURITY_BACKUPS) || []; },
-
-    addBackup(backup) {
-      const backups = this.getBackups();
-      backups.push(backup);
-      Store.set(Store.KEYS.SECURITY_BACKUPS, backups.slice(-20));
-    },
-
-    deleteBackup(id) {
-      Store.set(Store.KEYS.SECURITY_BACKUPS, this.getBackups().filter(b => b.id !== id));
-    },
-
-    getSessions() {
-      return Store.get(Store.KEYS.SECURITY_SESSIONS) || [
-        { id: '1', device: 'Chrome - Windows', ip: '192.168.1.100', lastActive: new Date().toISOString() }
-      ];
-    },
-
-    removeSession(id) {
-      Store.set(Store.KEYS.SECURITY_SESSIONS, this.getSessions().filter(s => s.id !== id));
-    },
-
-    closeAllSessions() { Store.set(Store.KEYS.SECURITY_SESSIONS, []); }
+    clearLogs() { Store.set(Store.KEYS.SECURITY_LOGS, []); }
   }
 };
 
@@ -584,4 +390,4 @@ function isObject(item) {
   return (item && typeof item === 'object' && !Array.isArray(item));
 }
 
-// NOTA: No llamar Store.init() aquí. App.init() lo hace.
+// No llamar Store.init() aquí. App.init() lo hace.
