@@ -11,6 +11,7 @@ const CustomizationTickets = {
       showCustomer: false,
       autoPrint: false,
       showUnitPrice: true,
+      showPayment: true,
       header: 'Stock Desk',
       footer: 'Gracias por su compra',
       width: '80mm'
@@ -42,7 +43,7 @@ const CustomizationTickets = {
             <option value="80mm" ${ticketConfig.width === '80mm' ? 'selected' : ''}>80mm (Recomendado)</option>
             <option value="A4" ${ticketConfig.width === 'A4' ? 'selected' : ''}>A4</option>
           </select>
-          <p class="text-xs text-slate-500 mt-1">80mm es el formato más legible. 58mm es más compacto.</p>
+          <p class="text-xs text-slate-500 mt-1">80mm es más legible. 58mm es más compacto. A4 para reportes/impresoras normales.</p>
         </div>
       </div>
     </div>
@@ -55,6 +56,7 @@ const CustomizationTickets = {
         ${this.renderToggle('show-cashier', 'Mostrar Cajero', !!ticketConfig.showCashier)}
         ${this.renderToggle('show-customer', 'Mostrar Cliente', !!ticketConfig.showCustomer)}
         ${this.renderToggle('show-unit', 'Mostrar precio unitario (80mm/A4)', !!ticketConfig.showUnitPrice)}
+        ${this.renderToggle('show-payment', 'Mostrar pago y cambio', ticketConfig.showPayment ?? true)}
         ${this.renderToggle('auto-print', 'Imprimir automático al cobrar', !!ticketConfig.autoPrint)}
       </div>
 
@@ -99,6 +101,13 @@ const CustomizationTickets = {
         <div class="border-t border-dashed border-slate-300 my-2"></div>
         <div class="flex justify-between font-bold"><span>TOTAL:</span><span>$25.50</span></div>
 
+        ${ticketConfig.showPayment ?? true ? `
+          <div class="border-t border-dashed border-slate-300 my-2"></div>
+          <p>Pago: Efectivo</p>
+          <p>Recibido: $30.00</p>
+          <p>Cambio: $4.50</p>
+        ` : ''}
+
         <div class="border-t border-dashed border-slate-300 my-2"></div>
         <div class="text-center"><p>${ticketConfig.footer}</p></div>
       </div>
@@ -132,8 +141,10 @@ const CustomizationTickets = {
       showCashier: document.getElementById('show-cashier')?.checked ?? true,
       showCustomer: document.getElementById('show-customer')?.checked ?? false,
       showUnitPrice: document.getElementById('show-unit')?.checked ?? true,
+      showPayment: document.getElementById('show-payment')?.checked ?? true,
       autoPrint: document.getElementById('auto-print')?.checked ?? false
     };
+
     Store.set(Store.KEYS.TICKET_CONFIG, config);
     Components.toast('Configuración guardada', 'success');
     Router.navigate('customization', {}, { push: false });
