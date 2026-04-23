@@ -5,15 +5,44 @@
 const ProductsPage = {
   searchQuery: '',
 
-  render() {
-    // VERIFICACIÓN DE PERMISOS UI
+  _getPermissions() {
     const user = Store.get(Store.KEYS.USER);
-    const isAdmin = user && (user.role === 'Administrador' || user.role === 'Gerente');
+    if (!user?.role) return [];
 
-    const products = this.searchQuery
-      ? Store.products.search(this.searchQuery)
-      : Store.products.getAll();
+    let roles = Store.get(Store.KEYS.ROLES);
+    if (!roles || roles.length === 0) {
+      roles = [
+        { name: 'Administrador', permissions: ['all'] },
+        { name: 'Gerente', permissions: ['products'] },
+        { name: 'Cajero', permissions: ['sales', 'reports'] }
+      ];
+    }
+    const role = roles.find(r => r.name === user.role);
+    const perms = role?.permissions || [];
+    const set = new Set(perms);
+    if (set.has('all')) return ['all'];
+    if (set.has('products')) {
+      set.add('products.view');
+      set.add('products.create');
+      set.add('products.edit');
+      set.add('products.delete');
+    }
+    if (set.has('products.edit')) set.add('products.view');
+    if (set.has('products.create')) set.add('products.view');
+    if (set.has('products.delete')) set.add('products.view');
+    return Array.from(set);
+  },
 
+  _canManage(perms) {
+    return perms.includes('all') || perms.includes('products.create') || perms.includes('products.edit') || perms.includes('products.delete');
+  },
+
+  render() {
+    const perms = this._getPermissions();
+    const canManage = this._canManage(perms);
+    const canView = perms.includes('all') || perms.includes('products.view') || perms.includes('products');
+
+    const products = this.searchQuery ? Store.products.search(this.searchQuery) : Store.products.getAll();
     const device = Store.device.get();
     const isMobile = device === 'mobile' || device === 'tablet';
 
@@ -25,8 +54,7 @@ const ProductsPage = {
       <p class="text-slate-500 mt-1 text-sm">Gestiona tu inventario</p>
     </div>
 
-    <!-- BOTÓN SOLO PARA ADMINS -->
-    ${isAdmin ? `
+    ${canManage ? `
     <button onclick="ProductsPage.openModal()"
       class="px-4 md:px-6 py-2.5 md:py-3 bg-orange-500 hover:bg-orange-600 text-white
       font-semibold rounded-xl shadow-lg shadow-orange-500/20 transition btn-press flex items-center gap-2 justify-center">
@@ -50,13 +78,14 @@ const ProductsPage = {
     </div>
   </div>
 
-  ${isMobile ? this.renderMobileList(products, isAdmin) : this.renderTable(products, isAdmin)}
+  ${canView ? (isMobile ? this.renderMobileList(products, canManage) : this.renderTable(products, canManage))
+            : `<div class="bg-white rounded-xl p-8 text-center text-slate-500 border border-slate-100">No tienes permisos para ver productos.</div>`}
 </div>
 `;
     return LayoutComponents.layout(content, 'products');
   },
 
-  renderTable(products, isAdmin) {
+  renderTable(products, canManage) {
     return `
 <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
   <div class="overflow-x-auto">
@@ -84,28 +113,22 @@ const ProductsPage = {
               </div>
             </div>
           </td>
-
           <td class="px-4 md:px-6 py-3 md:py-4">
             <span class="px-2 md:px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs md:text-sm">${p.category}</span>
           </td>
-
           <td class="px-4 md:px-6 py-3 md:py-4 font-semibold text-slate-900 text-sm md:text-base">$${p.price.toFixed(2)}</td>
-
           <td class="px-4 md:px-6 py-3 md:py-4">
             <span class="px-2 md:px-3 py-1 ${p.stock < (p.minStock || 10) ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'} rounded-full text-xs md:text-sm font-medium">
               ${p.stock} uds
             </span>
           </td>
-
           <td class="px-4 md:px-6 py-3 md:py-4 text-right">
             <div class="flex justify-end gap-1 md:gap-2">
-              ${isAdmin ? `
-              <button onclick="ProductsPage.openModal(${p.id})"
-                class="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition" title="Editar">
+              ${canManage ? `
+              <button onclick="ProductsPage.openModal(${p.id})" class="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition" title="Editar">
                 ${Components.icons.edit}
               </button>
-              <button onclick="ProductsPage.deleteProduct(${p.id})"
-                class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
+              <button onclick="ProductsPage.deleteProduct(${p.id})" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
                 ${Components.icons.trash}
               </button>
               ` : '<span class="text-xs text-slate-300">Solo lectura</span>'}
@@ -127,7 +150,7 @@ const ProductsPage = {
 `;
   },
 
-  renderMobileList(products, isAdmin) {
+  renderMobileList(products, canManage) {
     return `
 <div class="space-y-3">
   ${products.length > 0 ? products.map(p => `
@@ -142,9 +165,8 @@ const ProductsPage = {
           <span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">${p.category}</span>
         </div>
       </div>
-
       <div class="flex gap-1">
-        ${isAdmin ? `
+        ${canManage ? `
         <button onclick="ProductsPage.openModal(${p.id})" class="p-2 text-slate-400 hover:text-orange-600 rounded-lg">
           ${Components.icons.edit}
         </button>
@@ -154,7 +176,6 @@ const ProductsPage = {
         ` : ''}
       </div>
     </div>
-
     <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
       <span class="font-bold text-orange-600">$${p.price.toFixed(2)}</span>
       <span class="px-2 py-1 ${p.stock < (p.minStock || 10) ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'} rounded-full text-xs font-medium">
@@ -172,18 +193,16 @@ const ProductsPage = {
 `;
   },
 
-  // FIX: Búsqueda sin llenar historial
   handleSearch(query) {
     this.searchQuery = query;
     Router.render('products');
   },
 
-  // --- FUNCIONES BLINDADAS ---
   openModal(productId = null) {
-    // [LOCK] SEGURIDAD: Verificar rol antes de abrir el modal
-    const user = Store.get(Store.KEYS.USER);
-    if (!user || (user.role !== 'Administrador' && user.role !== 'Gerente')) {
-      Components.toast(' Acceso denegado: Se requieren permisos de Administrador', 'error');
+    const perms = this._getPermissions();
+    const canManage = this._canManage(perms);
+    if (!canManage) {
+      Components.toast('Acceso denegado: permisos insuficientes', 'error');
       return;
     }
 
@@ -195,79 +214,32 @@ const ProductsPage = {
 <form id="product-form" class="space-y-4">
   <div>
     <label class="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
-    <input type="text" id="prod-name" value="${product?.name || ''}" placeholder="Ej: Coca Cola 600ml"
-      class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+    <input type="text" id="prod-name" value="${product?.name || ''}"
+      class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
   </div>
-
   <div class="grid grid-cols-2 gap-4">
     <div>
       <label class="block text-sm font-medium text-slate-700 mb-1">Precio *</label>
-      <input type="number" id="prod-price" value="${product?.price || ''}" step="0.01" min="0" placeholder="0.00"
-        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+      <input type="number" id="prod-price" value="${product?.price || ''}" step="0.01" min="0"
+        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
     </div>
     <div>
       <label class="block text-sm font-medium text-slate-700 mb-1">Stock *</label>
-      <input type="number" id="prod-stock" value="${product?.stock ?? ''}" min="0" placeholder="0"
-        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+      <input type="number" id="prod-stock" value="${product?.stock ?? ''}" min="0"
+        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
     </div>
   </div>
-
   <div class="grid grid-cols-2 gap-4">
     <div>
       <label class="block text-sm font-medium text-slate-700 mb-1">Categoría *</label>
-      <input type="text" id="prod-category" value="${product?.category || ''}" placeholder="Ej: Bebidas"
-        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+      <input type="text" id="prod-category" value="${product?.category || ''}"
+        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
     </div>
     <div>
       <label class="block text-sm font-medium text-slate-700 mb-1">Almacén</label>
-      <select id="prod-warehouse"
-        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+      <select id="prod-warehouse" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
         ${warehouses.map(w => `<option value="${w.id}" ${product?.warehouseId === w.id ? 'selected' : ''}>${w.name}</option>`).join('')}
       </select>
-    </div>
-  </div>
-
-  <div class="grid grid-cols-2 gap-4">
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Código de Barras</label>
-      <div class="flex gap-2">
-        <input type="text" id="prod-barcode" value="${product?.barcode || ''}" placeholder="Escanear..."
-          class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
-        <button type="button" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200" title="Generar">
-          ${Components.icons.barcode}
-        </button>
-      </div>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">SKU</label>
-      <input type="text" id="prod-sku" value="${product?.sku || ''}" placeholder="SKU-001"
-        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
-    </div>
-  </div>
-
-  <div class="grid grid-cols-2 gap-4">
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Lote</label>
-      <input type="text" id="prod-lot" value="${product?.lot || ''}" placeholder="Opcional"
-        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Fecha Vencimiento</label>
-      <input type="date" id="prod-expiry" value="${product?.expirationDate || ''}"
-        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
-    </div>
-  </div>
-
-  <div class="grid grid-cols-2 gap-4">
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Ubicación (Pasillo/Estante)</label>
-      <input type="text" id="prod-location" value="${product?.location || ''}" placeholder="A-12"
-        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Stock Mínimo</label>
-      <input type="number" id="prod-minstock" value="${product?.minStock || 5}" min="0" placeholder="5"
-        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-orange-500">
     </div>
   </div>
 </form>
@@ -276,62 +248,41 @@ const ProductsPage = {
     Components.modal({
       title: isEdit ? 'Editar Producto' : 'Nuevo Producto',
       content: modalContent,
-      confirmText: isEdit ? 'Guardar Cambios' : 'Crear Producto',
+      confirmText: isEdit ? 'Guardar' : 'Crear',
       onConfirm: () => {
-        // Validación para evitar inputs vacíos
-        const nameEl = document.getElementById('prod-name');
-        const priceEl = document.getElementById('prod-price');
-        const stockEl = document.getElementById('prod-stock');
-        const categoryEl = document.getElementById('prod-category');
-        if (!nameEl || !priceEl || !stockEl || !categoryEl) return false;
+        const name = document.getElementById('prod-name').value.trim();
+        const price = parseFloat(document.getElementById('prod-price').value);
+        const stock = parseInt(document.getElementById('prod-stock').value);
+        const category = document.getElementById('prod-category').value.trim();
 
-        const name = nameEl.value.trim();
-        const price = parseFloat(priceEl.value);
-        const stock = parseInt(stockEl.value);
-        const category = categoryEl.value.trim();
-
-        if (!name) { Components.toast('Nombre requerido', 'error'); return false; }
-        if (isNaN(price) || price < 0) { Components.toast('Precio inválido', 'error'); return false; }
-        if (isNaN(stock) || stock < 0) { Components.toast('Stock inválido', 'error'); return false; }
-        if (!category) { Components.toast('Categoría requerida', 'error'); return false; }
-
-        const data = {
-          name, price, stock, category,
-          warehouseId: parseInt(document.getElementById('prod-warehouse')?.value || 1),
-          barcode: document.getElementById('prod-barcode')?.value.trim() || '',
-          sku: document.getElementById('prod-sku')?.value.trim() || '',
-          lot: document.getElementById('prod-lot')?.value.trim() || '',
-          expirationDate: document.getElementById('prod-expiry')?.value || '',
-          location: document.getElementById('prod-location')?.value.trim() || '',
-          minStock: parseInt(document.getElementById('prod-minstock')?.value || 5)
-        };
-
-        try {
-          if (isEdit) {
-            Store.products.update(productId, data);
-            Components.toast('Producto actualizado correctamente', 'success');
-          } else {
-            Store.products.add(data);
-            Components.toast('Producto creado correctamente', 'success');
-          }
-
-          // Refrescar sin llenar historial
-          setTimeout(() => Router.navigate('products', {}, { push: false }), 50);
-          return true;
-        } catch (error) {
-          console.error('Error al guardar:', error);
-          Components.toast('Error al guardar el producto', 'error');
+        if (!name || isNaN(price) || isNaN(stock) || !category) {
+          Components.toast('Completa los campos requeridos', 'warning');
           return false;
         }
+
+        const data = {
+          name,
+          price,
+          stock,
+          category,
+          warehouseId: parseInt(document.getElementById('prod-warehouse').value || 1)
+        };
+
+        if (isEdit) Store.products.update(productId, data);
+        else Store.products.add(data);
+
+        Components.toast(isEdit ? 'Producto actualizado' : 'Producto creado', 'success');
+        Router.navigate('products', {}, { push: false });
+        return true;
       }
     });
   },
 
   deleteProduct(id) {
-    // [LOCK] SEGURIDAD: Verificar rol antes de borrar
-    const user = Store.get(Store.KEYS.USER);
-    if (!user || (user.role !== 'Administrador' && user.role !== 'Gerente')) {
-      Components.toast(' Acceso denegado: Se requieren permisos de Administrador', 'error');
+    const perms = this._getPermissions();
+    const canDelete = perms.includes('all') || perms.includes('products.delete');
+    if (!canDelete) {
+      Components.toast('Acceso denegado: no puedes eliminar productos', 'error');
       return;
     }
 
