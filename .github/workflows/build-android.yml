@@ -36,6 +36,15 @@ jobs:
             libncursesw5-dev cmake libffi-dev libssl-dev automake \
             autopoint gettext build-essential
 
+      - name: Point JAVA_HOME at JDK 17
+        # ubuntu-22.04 GitHub-hosted runners ya traen varios JDKs
+        # preinstalados (11, 17, 21...) con JAVA_HOME apuntando por
+        # defecto a uno más viejo (11). El Android Gradle Plugin usado
+        # por python-for-android requiere Java 17 explícitamente
+        # ("Android Gradle plugin requires Java 17 to run. You are
+        # currently using Java 11"), confirmado en un build real.
+        run: echo "JAVA_HOME=${JAVA_HOME_17_X64:-/usr/lib/jvm/temurin-17-jdk-amd64}" >> "$GITHUB_ENV"
+
       - name: Install Buildozer and Cython
         run: |
           python3 -m pip install --upgrade pip
