@@ -6,10 +6,17 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   build-android:
     name: Build StockDesk.apk
-    runs-on: ubuntu-latest
+    # ubuntu-22.04 fijo (no ubuntu-latest): Buildozer/python-for-android
+    # necesitan paquetes de sistema estables; versiones de Ubuntu muy
+    # recientes rompen algunos repositorios de terceros usados por el
+    # toolchain de Android.
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
@@ -20,27 +27,43 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk python3-pip python3-venv \
+            autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
+            libncursesw5-dev cmake libffi-dev libssl-dev automake \
+            autopoint gettext build-essential
+
+      - name: Install Buildozer and Cython
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install --upgrade buildozer cython==0.29.33 virtualenv
+
       - name: Copy web app assets into native/android/webapp
         run: python3 native/copy_web_assets.py android
 
       - name: Copy shared server.py next to main.py
         run: cp native/server.py native/android/server.py
 
-      # Usa la imagen oficial de Buildozer en Docker (incluye Android
-      # SDK/NDK ya configurados), así el runner de GitHub Actions no
-      # necesita instalar ~10 GB de herramientas manualmente.
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          workdir: native/android
-          buildozer_version: stable
+      - name: Accept Android SDK licenses in advance
+        run: yes | buildozer android update || true
+        working-directory: native/android
 
-      - name: Rename artifact
-        shell: bash
+      - name: Build with Buildozer
+        working-directory: native/android
+        run: buildozer -v android debug
+
+      - name: Locate and rename artifact
         run: |
           mkdir -p out
-          cp "${{ steps.buildozer.outputs.filename }}" out/StockDesk-android.apk
+          apk_path=$(find native/android/bin -name "*.apk" | head -n1)
+          if [ -z "$apk_path" ]; then
+            echo "No se encontró ningún .apk generado" >&2
+            exit 1
+          fi
+          cp "$apk_path" out/StockDesk-android.apk
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
