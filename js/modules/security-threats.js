@@ -23,8 +23,11 @@ const SecurityThreats = {
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                             </div>
                             <div>
-                                <h4 class="font-semibold text-slate-900">Protección Fuerza Bruta</h4>
-                                <p class="text-sm text-slate-500">Bloquear IPs tras intentos fallidos</p>
+                                <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                                    Protección Fuerza Bruta
+                                    ${Components.simulatedBadge('Simulado (no conectado)', 'Este interruptor guarda una preferencia pero no bloquea IPs ni intentos: esta app no tiene servidor para bloquear tráfico de red. La protección real contra intentos fallidos de login (bloqueo temporal por usuario) se controla por separado en Seguridad → Autenticación → "Bloqueo por intentos fallidos".')}
+                                </h4>
+                                <p class="text-sm text-slate-500">Bloquear IPs tras intentos fallidos (simulado, sin efecto real; no bloquea tráfico de red)</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -51,8 +54,11 @@ const SecurityThreats = {
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                             </div>
                             <div>
-                                <h4 class="font-semibold text-slate-900">Firewall de Aplicación (WAF)</h4>
-                                <p class="text-sm text-slate-500">Monitoreo de tráfico malicioso</p>
+                                <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                                    Firewall de Aplicación (WAF)
+                                    ${Components.simulatedBadge('Simulado (local)', 'No es un WAF de red real: esta app no tiene servidor ni tráfico HTTP que inspeccionar. El toggle solo activa un filtro de patrones sobre datos introducidos localmente en el navegador.')}
+                                </h4>
+                                <p class="text-sm text-slate-500">Monitoreo de tráfico malicioso (simulado, sin servidor real)</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">

@@ -27,16 +27,16 @@ const SuppliersDirectory = {
                                                 ${s.name.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <h4 class="font-semibold text-slate-900">${s.name}</h4>
+                                                <h4 class="font-semibold text-slate-900">${Sanitize.escapeHtml(s.name)}</h4>
                                                 <p class="text-sm text-slate-500">${s.category || 'General'}</p>
                                             </div>
                                         </div>
                                         ${this.renderRating(s.rating || 0)}
                                     </div>
                                     <div class="space-y-2 text-sm">
-                                        ${s.contact ? `<p class="text-slate-600">${Components.icons.users.replace('w-5 h-5', 'w-4 h-4 inline mr-1')} ${s.contact}</p>` : ''}
-                                        ${s.phone ? `<p class="text-slate-600">${Components.icons.info.replace('w-5 h-5', 'w-4 h-4 inline mr-1')} ${s.phone}</p>` : ''}
-                                        ${s.email ? `<p class="text-slate-600 truncate">${Components.icons.info.replace('w-5 h-5', 'w-4 h-4 inline mr-1')} ${s.email}</p>` : ''}
+                                        ${s.contact ? `<p class="text-slate-600">${Components.icons.users.replace('w-5 h-5', 'w-4 h-4 inline mr-1')} ${Sanitize.escapeHtml(s.contact)}</p>` : ''}
+                                        ${s.phone ? `<p class="text-slate-600">${Components.icons.info.replace('w-5 h-5', 'w-4 h-4 inline mr-1')} ${Sanitize.escapeHtml(s.phone)}</p>` : ''}
+                                        ${s.email ? `<p class="text-slate-600 truncate">${Components.icons.info.replace('w-5 h-5', 'w-4 h-4 inline mr-1')} ${Sanitize.escapeHtml(s.email)}</p>` : ''}
                                     </div>
                                     <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-100 text-center">
                                         <div>
@@ -151,7 +151,7 @@ const SuppliersDirectory = {
                 <form class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-                        <input type="text" id="sup-name" value="${s.name}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
+                        <input type="text" id="sup-name" value="${Sanitize.escapeHtml(s.name)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>

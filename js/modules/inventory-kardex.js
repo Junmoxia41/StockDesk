@@ -19,7 +19,7 @@ const InventoryKardex = {
       <select id="kardex-filter" onchange="InventoryKardex.filterByProduct(this.value)"
         class="px-4 py-2 rounded-lg border border-slate-200 focus:border-orange-500 text-sm">
         <option value="">Todos los productos</option>
-        ${products.map(p => `<option value="${p.id}" ${this.selectedProduct === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+        ${products.map(p => `<option value="${p.id}" ${this.selectedProduct === p.id ? 'selected' : ''}>${Sanitize.escapeHtml(p.name)}</option>`).join('')}
       </select>
       <button onclick="InventoryKardex.exportKardex()"
         class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center gap-2 text-sm">
@@ -59,7 +59,7 @@ const InventoryKardex = {
             return `
             <tr class="table-row-hover">
               <td class="px-4 py-3 text-sm text-slate-600">${new Date(k.date).toLocaleString('es')}</td>
-              <td class="px-4 py-3 text-sm font-medium text-slate-900">${k.productName}</td>
+              <td class="px-4 py-3 text-sm font-medium text-slate-900">${Sanitize.escapeHtml(k.productName)}</td>
               <td class="px-4 py-3">
                 <span class="px-2 py-1 text-xs rounded-full ${typeClass}">
                   ${k.type.charAt(0).toUpperCase() + k.type.slice(1)}
@@ -69,7 +69,7 @@ const InventoryKardex = {
                 ${sign}${k.quantity}
               </td>
               <td class="px-4 py-3 text-sm text-slate-900">${k.balance}</td>
-              <td class="px-4 py-3 text-sm text-slate-500">${k.reason}</td>
+              <td class="px-4 py-3 text-sm text-slate-500">${Sanitize.escapeHtml(k.reason)}</td>
             </tr>
             `;
           }).join('')}
@@ -99,7 +99,7 @@ const InventoryKardex = {
 
     const csv = 'Fecha,Producto,Tipo,Cantidad,Saldo,Motivo\n' +
       kardex.map(k =>
-        `${k.date},${k.productName},${k.type},${k.quantity},${k.balance},"${k.reason}"`
+        [k.date, Sanitize.csvField(k.productName), k.type, k.quantity, k.balance, Sanitize.csvField(k.reason)].join(',')
       ).join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -136,7 +136,7 @@ const InventoryCounts = {
         <label class="block text-sm font-medium text-slate-700 mb-1">Producto</label>
         <select id="count-product" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
           <option value="">Seleccionar...</option>
-          ${products.map(p => `<option value="${p.id}">${p.name} (Sistema: ${p.stock})</option>`).join('')}
+          ${products.map(p => `<option value="${p.id}">${Sanitize.escapeHtml(p.name)} (Sistema: ${p.stock})</option>`).join('')}
         </select>
       </div>
       <div>
@@ -162,7 +162,7 @@ const InventoryCounts = {
       ${counts.slice().reverse().slice(0, 10).map(c => `
       <div class="px-4 py-3 flex items-center justify-between">
         <div>
-          <p class="font-medium text-slate-900">${c.productName}</p>
+          <p class="font-medium text-slate-900">${Sanitize.escapeHtml(c.productName)}</p>
           <p class="text-xs text-slate-500">${new Date(c.date).toLocaleString('es')}</p>
         </div>
         <div class="text-right">

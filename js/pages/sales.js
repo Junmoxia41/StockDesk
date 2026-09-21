@@ -133,7 +133,7 @@ const SalesPage = {
             ${p.stock}
           </span>
         </div>
-        <h4 class="font-medium text-slate-900 text-xs md:text-sm mb-1 truncate">${p.name}</h4>
+        <h4 class="font-medium text-slate-900 text-xs md:text-sm mb-1 truncate">${Sanitize.escapeHtml(p.name)}</h4>
         <p class="text-orange-600 font-bold text-sm md:text-base">$${p.price.toFixed(2)}</p>
       </button>
       `).join('')}
@@ -166,7 +166,7 @@ const SalesPage = {
       ${this.cart.map((item, index) => `
       <div class="flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-slate-50 rounded-xl">
         <div class="flex-1 min-w-0">
-          <h4 class="font-medium text-slate-900 text-sm truncate">${item.name}</h4>
+          <h4 class="font-medium text-slate-900 text-sm truncate">${Sanitize.escapeHtml(item.name)}</h4>
           <p class="text-xs text-slate-500">$${item.price.toFixed(2)} c/u</p>
         </div>
 
@@ -276,7 +276,7 @@ const SalesPage = {
 <div class="max-h-60 overflow-y-auto space-y-2 mb-4">
   ${this.cart.map(item => `
   <div class="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
-    <span class="text-sm">${item.name} x${item.quantity}</span>
+    <span class="text-sm">${Sanitize.escapeHtml(item.name)} x${item.quantity}</span>
     <span class="font-semibold">$${(item.price * item.quantity).toFixed(2)}</span>
   </div>
   `).join('')}
@@ -325,7 +325,7 @@ const SalesPage = {
       content: `
 <div class="space-y-4">
   <div class="text-center">
-    <p class="text-sm text-slate-500 mb-1">${customer}</p>
+    <p class="text-sm text-slate-500 mb-1">${Sanitize.escapeHtml(customer)}</p>
     <p class="text-3xl font-bold text-orange-600 mb-2">$${total.toFixed(2)}</p>
     ${discountPercent > 0 ? `<p class="text-xs text-green-600 mb-2">Descuento: ${discountPercent}% (-$${discountAmount.toFixed(2)})</p>` : ''}
     <p class="text-sm text-slate-500">${this.cart.length} productos</p>
@@ -450,7 +450,7 @@ const SalesPage = {
         <span class="text-xs text-slate-400">(${new Date(s.date).toLocaleString('es')})</span>
       </p>
       <p class="text-xs text-slate-500">
-        ${(s.customer || 'Público General')} • ${(s.items||[]).reduce((a,i)=>a+(i.qty||0),0)} items • ${SalesPage._paymentLabel(s.paymentMethod || 'cash')}
+        ${Sanitize.escapeHtml(s.customer || 'Público General')} • ${(s.items||[]).reduce((a,i)=>a+(i.qty||0),0)} items • ${SalesPage._paymentLabel(s.paymentMethod || 'cash')}
       </p>
     </div>
     <div class="flex items-center gap-2">

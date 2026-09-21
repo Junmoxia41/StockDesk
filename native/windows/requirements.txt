@@ -1,0 +1,5 @@
+# Dependencias para compilar StockDesk como .exe de Windows con pywebview.
+# En Windows, pywebview usa por defecto WebView2 (Edge Chromium), que ya
+# viene preinstalado en Windows 10/11. No requiere instalar Chrome aparte.
+pywebview==4.4.1
+pyinstaller==6.10.0

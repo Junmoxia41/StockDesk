@@ -96,7 +96,7 @@ const CustomizationPage = {
                     ${fields.length > 0 ? fields.map(f => `
                         <div class="p-4 flex items-center justify-between border-b border-slate-100 last:border-0">
                             <div>
-                                <p class="font-medium text-slate-900">${f.name}</p>
+                                <p class="font-medium text-slate-900">${Sanitize.escapeHtml(f.name)}</p>
                                 <p class="text-sm text-slate-500">Tipo: ${f.type} | Entidad: ${f.entity}</p>
                             </div>
                             <button onclick="CustomizationPage.deleteField('${f.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded-lg">
@@ -122,8 +122,8 @@ const CustomizationPage = {
                 <div class="grid md:grid-cols-3 gap-3">
                     ${categories.map(cat => `
                         <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center justify-between">
-                            <span class="font-medium text-slate-900">${cat}</span>
-                            <button onclick="CustomizationPage.deleteCategory('${cat}')" class="text-red-500 hover:bg-red-50 p-1 rounded">
+                            <span class="font-medium text-slate-900">${Sanitize.escapeHtml(cat)}</span>
+                            <button onclick="CustomizationPage.deleteCategory('${Sanitize.escapeJsString(cat)}')" class="text-red-500 hover:bg-red-50 p-1 rounded">
                                 ${Components.icons.close.replace('w-6 h-6', 'w-4 h-4')}
                             </button>
                         </div>

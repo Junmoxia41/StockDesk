@@ -43,10 +43,12 @@ const Router = {
   navigate(path, params = {}, options = { push: true }) {
     // --- MIDDLEWARE DE SEGURIDAD (Global y Roles) ---
     if (!this.publicRoutes.includes(path)) {
-      const user = Store.get(Store.KEYS.USER);
+      // AuthService (js/services/auth-service.js) centraliza la lectura de
+      // la sesión local; ver docs/ARCHITECTURE.md sección 2.5 (Services).
+      const user = AuthService.getCurrentUser();
 
       // 1) Login
-      if (!user || !user.loggedIn) {
+      if (!AuthService.isAuthenticated()) {
         this.navigate('login', {}, { push: options.push });
         return;
       }
@@ -124,8 +126,7 @@ const Router = {
       this.render(path, params);
     } else {
       console.warn(`Ruta no encontrada: ${path}.`);
-      const user = Store.get(Store.KEYS.USER);
-      if (user && user.loggedIn) this.navigate('dashboard', {}, { push: options.push });
+      if (AuthService.isAuthenticated()) this.navigate('dashboard', {}, { push: options.push });
       else this.navigate('login', {}, { push: options.push });
     }
   },

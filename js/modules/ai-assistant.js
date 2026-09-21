@@ -180,7 +180,7 @@ const AIAssistant = {
             <div class="flex ${isUser ? 'justify-end' : 'justify-start'}">
                 <div class="ai-message ${isUser ? 'bg-orange-500 text-white' : 'bg-white border border-slate-200 text-slate-700'} 
                             px-4 py-3 rounded-2xl ${isUser ? 'rounded-br-md' : 'rounded-bl-md'} shadow-sm">
-                    <p class="text-sm whitespace-pre-wrap">${msg.content}</p>
+                    <p class="text-sm whitespace-pre-wrap">${Sanitize.escapeHtml(msg.content)}</p>
                 </div>
             </div>
         `;

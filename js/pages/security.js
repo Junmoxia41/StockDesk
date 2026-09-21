@@ -28,7 +28,10 @@ const SecurityPage = {
                 <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white mb-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-green-100 text-sm mb-1">Nivel de Seguridad</p>
+                            <p class="text-green-100 text-sm mb-1 flex items-center gap-2">
+                                Nivel de Configuración
+                                ${Components.simulatedBadge('Estimado, no auditado', 'Este porcentaje mide cuántas de las opciones locales de esta pantalla están activadas, no un análisis de seguridad real ni una garantía de protección. Varias de esas opciones son simulaciones sin efecto real (ver docs/SECURITY.md).')}
+                            </p>
                             <p class="text-4xl font-bold">${this.getSecurityScore()}%</p>
                             <p class="text-green-100 text-sm mt-2">${this.getSecurityStatus()}</p>
                         </div>
@@ -90,10 +93,10 @@ const SecurityPage = {
 
     getSecurityStatus() {
         const score = this.getSecurityScore();
-        if (score >= 90) return 'Excelente protección';
-        if (score >= 70) return 'Buena protección';
-        if (score >= 50) return 'Protección básica';
-        return 'Necesita mejoras';
+        if (score >= 90) return 'La mayoría de las opciones locales están activadas';
+        if (score >= 70) return 'Varias opciones locales están activadas';
+        if (score >= 50) return 'Configuración básica activada';
+        return 'Pocas opciones activadas todavía';
     }
 };
 

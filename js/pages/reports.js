@@ -99,7 +99,7 @@ const ReportsPage = {
             <div class="flex items-center gap-2">
               <div class="text-right mr-2">
                 <p class="font-bold text-orange-600 text-sm md:text-base">$${(sale.total || 0).toFixed(2)}</p>
-                <p class="text-xs text-slate-500">${sale.customer || 'Público General'}</p>
+                <p class="text-xs text-slate-500">${Sanitize.escapeHtml(sale.customer || 'Público General')}</p>
               </div>
               <button onclick="ReportsPage.printSale(${sale.id})"
                 class="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg" title="Imprimir">
@@ -224,7 +224,7 @@ const ReportsPage = {
         <tr>
           <td>#${String(s.id).slice(-6)}</td>
           <td>${new Date(s.date).toLocaleString('es')}</td>
-          <td>${(s.customer || 'Público General')}</td>
+          <td>${Sanitize.escapeHtml(s.customer || 'Público General')}</td>
           <td class="r">$${Number(s.total || 0).toFixed(2)}</td>
         </tr>
       `).join('')}

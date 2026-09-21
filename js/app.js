@@ -23,9 +23,69 @@ const App = {
                 console.log('AI Assistant initialized');
             }
         }, 1000);
-        
+
+        // Register PWA service worker (app shell only, ver service-worker.js)
+        this.registerServiceWorker();
+
         // Start the application
         this.start();
+    },
+
+    /**
+     * PWA: registra el service worker y expone el flujo de actualización
+     * "Nueva versión disponible" pedido en la auditoría de producción.
+     * No cachea datos de negocio (viven en localStorage), solo el app shell.
+     */
+    registerServiceWorker() {
+        if (!('serviceWorker' in navigator)) return;
+
+        // file:// y otros esquemas no soportan Service Workers.
+        if (window.location.protocol === 'file:') return;
+
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./service-worker.js').then((registration) => {
+                // Ya hay un SW en espera al registrar (poco común, pero posible)
+                if (registration.waiting) {
+                    this.notifyUpdateAvailable(registration);
+                }
+
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    if (!newWorker) return;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            this.notifyUpdateAvailable(registration);
+                        }
+                    });
+                });
+            }).catch((err) => {
+                console.warn('No se pudo registrar el Service Worker (la app seguirá funcionando sin modo offline):', err);
+            });
+
+            // Evita recargar en bucle si varias pestañas actualizan a la vez.
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                window.location.reload();
+            });
+        });
+    },
+
+    notifyUpdateAvailable(registration) {
+        if (typeof Components === 'undefined' || !Components.toast) return;
+        Components.toast('Nueva versión de StockDesk disponible. Toca para actualizar.', 'info', 8000);
+
+        // Actualiza al hacer clic en cualquier parte del toast más reciente.
+        const container = document.getElementById('toast-container');
+        if (container && container.lastElementChild) {
+            container.lastElementChild.style.cursor = 'pointer';
+            container.lastElementChild.addEventListener('click', () => {
+                if (registration.waiting) {
+                    registration.waiting.postMessage('SKIP_WAITING');
+                }
+            });
+        }
     },
 
     loadSavedTheme() {

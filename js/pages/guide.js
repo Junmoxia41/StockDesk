@@ -41,7 +41,7 @@ const GuidePage = {
                                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30' 
                                            : 'bg-white border border-slate-200 text-slate-600 hover:border-orange-300 hover:bg-orange-50'}">
                             ${Components.icons[cat.icon] || Components.icons.grid}
-                            ${cat.name}
+                            ${Sanitize.escapeHtml(cat.name)}
                         </button>
                     `).join('')}
                 </div>

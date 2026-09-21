@@ -45,6 +45,13 @@ Object.assign(AIAssistant, {
         const localResponse = this.handleLocalQuery(userMessage);
         if (localResponse) return localResponse;
 
+        // Then check the advanced analytics module (predictions,
+        // recommendations, anomalies, pricing, reports), if loaded.
+        if (typeof this.getAdvancedResponse === 'function') {
+            const advancedResponse = this.getAdvancedResponse(userMessage);
+            if (advancedResponse) return advancedResponse;
+        }
+
         // Check if API key is configured
         if (!this.config.apiKey) {
             return this.getOfflineResponse(userMessage);

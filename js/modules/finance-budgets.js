@@ -60,8 +60,8 @@ const FinanceBudgets = {
                             <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
                                 <div class="flex items-start justify-between mb-3">
                                     <div>
-                                        <h4 class="font-semibold text-slate-900">${b.name}</h4>
-                                        <p class="text-sm text-slate-500">${b.category} - ${b.period}</p>
+                                        <h4 class="font-semibold text-slate-900">${Sanitize.escapeHtml(b.name)}</h4>
+                                        <p class="text-sm text-slate-500">${Sanitize.escapeHtml(b.category)} - ${b.period}</p>
                                     </div>
                                     <span class="px-2 py-1 text-xs rounded-full ${isOver ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">
                                         ${isOver ? 'Excedido' : 'En rango'}

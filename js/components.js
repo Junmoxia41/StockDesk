@@ -2,6 +2,63 @@
  * Components Module - Reusable UI Components
  * Stock Desk Application
  */
+
+/**
+ * Sanitize - utilidad global de escape de HTML.
+ * P1 (auditoría de producción): la mayoría de las páginas interpolaban texto
+ * libre de usuario (nombre de producto, cliente, notas, descripciones...)
+ * directamente dentro de plantillas que terminan en `innerHTML`, lo que abre
+ * la puerta a HTML/DOM injection si un usuario introduce, por ejemplo,
+ * `<img src=x onerror=...>` como nombre de producto o nota.
+ * Esta utilidad debe usarse en TODO punto donde se imprima un valor que
+ * provenga de un formulario o de datos importados (backup/CSV/JSON).
+ */
+window.Sanitize = {
+  escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
+  // Escapa un valor para insertarlo dentro de un literal de string JS
+  // (por ejemplo dentro de onclick="Foo('${valor}')"). Escapar solo con
+  // escapeHtml() NO es suficiente en ese contexto: el navegador decodifica
+  // las entidades HTML del atributo antes de ejecutar el JS, así que una
+  // comilla simple en el dato original seguiría rompiendo el string.
+  escapeJsString(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '');
+  },
+
+  // Valida que un nombre de usuario solo contenga caracteres seguros
+  // (letras, números, punto, guion y guion bajo). Se usa al crear/registrar
+  // usuarios para evitar que un username con comillas/HTML llegue a
+  // almacenarse y luego se renderice en botones onclick.
+  isValidUsername(value) {
+    return /^[a-zA-Z0-9._-]{3,32}$/.test(String(value || ''));
+  },
+
+  // Escapa un campo para exportación CSV: envuelve en comillas, duplica
+  // comillas internas y neutraliza "CSV/Formula Injection" (cuando un campo
+  // empieza con =, +, -, @ Excel/Sheets puede interpretarlo como fórmula).
+  csvField(value) {
+    let str = String(value === null || value === undefined ? '' : value);
+    if (/^[=+\-@]/.test(str)) str = `'${str}`;
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+};
+
 const Components = {
   icons: {
     home: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>',
@@ -61,7 +118,7 @@ const Components = {
 
     const toast = document.createElement('div');
     toast.className = `flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-white ${colors[type]} toast-enter`;
-    toast.innerHTML = `${icons[type]}<span class="font-medium">${message}</span>`;
+    toast.innerHTML = `${icons[type]}<span class="font-medium">${Sanitize.escapeHtml(message)}</span>`;
     container.appendChild(toast);
 
     setTimeout(() => {
@@ -69,6 +126,23 @@ const Components = {
       toast.classList.add('toast-exit');
       setTimeout(() => toast.remove(), 300);
     }, duration);
+  },
+
+  /**
+   * simulatedBadge - Etiqueta honesta para funciones que NO son seguridad/
+   * infraestructura real, sino simulaciones locales del lado del cliente.
+   * Requisito de la auditoría de producción: nunca presentar como real algo
+   * que solo es una simulación (ver docs/PRODUCTION-AUDIT.md, sección 3).
+   *
+   * @param {string} label Texto corto, p.ej. "Simulado (cliente)" o "Local"
+   * @param {string} tooltip Explicación honesta de qué hace realmente.
+   */
+  simulatedBadge(label = 'Simulado (cliente)', tooltip = '') {
+    return `<span title="${Sanitize.escapeHtml(tooltip)}"
+      class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide
+      bg-amber-100 text-amber-700 rounded-full border border-amber-200">
+      ${this.icons.warning.replace('w-5 h-5', 'w-3 h-3')} ${Sanitize.escapeHtml(label)}
+    </span>`;
   },
 
   modal(options) {
@@ -97,7 +171,7 @@ const Components = {
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-scale-in max-h-[90vh]
       overflow-y-auto" onclick="event.stopPropagation()">
         <div class="p-6">
-          <h3 class="text-xl font-semibold text-slate-900 mb-4">${title}</h3>
+          <h3 class="text-xl font-semibold text-slate-900 mb-4">${Sanitize.escapeHtml(title)}</h3>
           <div class="text-slate-600">${content}</div>
         </div>
         <div class="flex gap-3 p-4 bg-slate-50 rounded-b-2xl sticky bottom-0">

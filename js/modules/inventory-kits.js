@@ -42,7 +42,7 @@ const InventoryKits = {
                                         ${Components.icons.trash}
                                     </button>
                                 </div>
-                                <h4 class="font-semibold text-slate-900 mb-1">${kit.name}</h4>
+                                <h4 class="font-semibold text-slate-900 mb-1">${Sanitize.escapeHtml(kit.name)}</h4>
                                 <p class="text-sm text-slate-500 mb-3">${kit.description || 'Sin descripción'}</p>
                                 
                                 <div class="space-y-2 mb-4">
@@ -117,7 +117,7 @@ const InventoryKits = {
                             <div class="flex gap-2">
                                 <select class="kit-product flex-1 px-3 py-2 rounded-lg border border-slate-200">
                                     <option value="">Seleccionar producto...</option>
-                                    ${products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                                    ${products.map(p => `<option value="${p.id}">${Sanitize.escapeHtml(p.name)}</option>`).join('')}
                                 </select>
                                 <input type="number" class="kit-qty w-20 px-3 py-2 rounded-lg border border-slate-200" placeholder="Cant" min="1" value="1">
                             </div>
@@ -164,7 +164,7 @@ const InventoryKits = {
         div.innerHTML = `
             <select class="kit-product flex-1 px-3 py-2 rounded-lg border border-slate-200">
                 <option value="">Seleccionar producto...</option>
-                ${products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                ${products.map(p => `<option value="${p.id}">${Sanitize.escapeHtml(p.name)}</option>`).join('')}
             </select>
             <input type="number" class="kit-qty w-20 px-3 py-2 rounded-lg border border-slate-200" placeholder="Cant" min="1" value="1">
             <button type="button" onclick="this.parentElement.remove()" class="px-2 text-red-500 hover:bg-red-50 rounded">×</button>

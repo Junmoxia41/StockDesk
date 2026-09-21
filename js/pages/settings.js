@@ -40,7 +40,7 @@ const SettingsPage = {
         const products = Store.products.getAll();
         const sales = Store.sales.getAll();
         const device = Store.device.get();
-        const aiApiKey = Store.get('stockdesk_ai_apikey') || '';
+        const aiApiKey = AIService.getApiKey();
         
         // Obtener nombre de moneda actual para mostrar en el botón
         const currentCurrency = this.currencies.find(c => c.code === settings.currency) || { name: 'Seleccionar...', code: '' };
@@ -87,7 +87,7 @@ const SettingsPage = {
                             <label class="block text-sm font-medium text-slate-700 mb-2">Moneda Principal</label>
                             <button onclick="SettingsPage.openCurrencyModal()" 
                                     class="w-full px-4 py-3 rounded-xl border border-slate-200 hover:border-orange-500 transition text-left flex items-center justify-between bg-slate-50 hover:bg-white">
-                                <span class="truncate">${currentCurrency.name}</span>
+                                <span class="truncate">${Sanitize.escapeHtml(currentCurrency.name)}</span>
                                 <span class="text-slate-400 ml-2">
                                     ${Components.icons.search}
                                 </span>
@@ -115,6 +115,15 @@ const SettingsPage = {
                         </h3>
                     </div>
                     <div class="p-4 md:p-6 space-y-4">
+                        <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-700">
+                            ${Components.icons.warning.replace('w-5 h-5', 'w-4 h-4 flex-shrink-0 mt-0.5')}
+                            <span>
+                                <strong>Aviso de seguridad:</strong> esta API Key se guarda en el almacenamiento local
+                                de este navegador y las llamadas a la IA se hacen directamente desde tu dispositivo
+                                (no hay backend intermedio). Cualquier persona con acceso a este navegador podría
+                                verla. No la compartas en equipos públicos y usa una key con permisos/gasto limitado.
+                            </span>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-2">API Key de GLM (ZhipuAI)</label>
                             <input type="password" id="ai-api-key" value="${aiApiKey}" 
@@ -255,7 +264,7 @@ const SettingsPage = {
             <button onclick="SettingsPage.selectCurrency('${c.code}')" 
                     class="w-full text-left p-3 rounded-lg flex items-center justify-between transition ${c.code === selectedCode ? 'bg-orange-50 border border-orange-200' : 'hover:bg-slate-50 border border-transparent'}">
                 <div>
-                    <p class="font-medium text-slate-900">${c.name}</p>
+                    <p class="font-medium text-slate-900">${Sanitize.escapeHtml(c.name)}</p>
                     <p class="text-xs text-slate-500">${c.code}</p>
                 </div>
                 ${c.code === selectedCode ? `<span class="text-orange-500">${Components.icons.check}</span>` : ''}
@@ -302,11 +311,7 @@ const SettingsPage = {
 
     saveAIKey() {
         const key = document.getElementById('ai-api-key')?.value || '';
-        if (typeof AIAssistant !== 'undefined') {
-            AIAssistant.setApiKey(key);
-        } else {
-            Store.set('stockdesk_ai_apikey', key);
-        }
+        AIService.setApiKey(key);
         Components.toast(key ? 'API Key guardada' : 'API Key eliminada', 'success');
     },
 

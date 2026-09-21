@@ -26,8 +26,11 @@ const SecurityAccess = {
                                 ${Components.icons.monitor}
                             </div>
                             <div>
-                                <h4 class="font-semibold text-slate-900">Restricción por IP</h4>
-                                <p class="text-sm text-slate-500">Solo permitir acceso desde IPs confiables</p>
+                                <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                                    Restricción por IP
+                                    ${Components.simulatedBadge('Simulado', 'Esta app no tiene servidor, por lo que no puede leer la IP real del dispositivo. La "IP actual" usada para comparar es un valor fijo de demostración (192.168.1.100), no la IP real de tu red.')}
+                                </h4>
+                                <p class="text-sm text-slate-500">Solo permitir acceso desde IPs confiables (simulado con una IP de demostración fija)</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -96,8 +99,11 @@ const SecurityAccess = {
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </div>
                             <div>
-                                <h4 class="font-semibold text-slate-900">Geobloqueo</h4>
-                                <p class="text-sm text-slate-500">Bloquear acceso desde países no autorizados</p>
+                                <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                                    Geobloqueo
+                                    ${Components.simulatedBadge('Simulado', 'No hay backend ni geolocalización por IP real: esta app corre 100% en el navegador y no puede verificar el país de origen de una conexión.')}
+                                </h4>
+                                <p class="text-sm text-slate-500">Bloquear acceso desde países no autorizados (función simulada, requiere backend)</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">

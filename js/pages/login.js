@@ -218,13 +218,13 @@ const LoginPage = {
 
   <div class="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar max-h-[400px]">
     ${hasCashiers ? cashiers.map(c => `
-      <button onclick="LoginPage.promptCashierPassword('${c.username}')"
+      <button onclick="LoginPage.promptCashierPassword('${Sanitize.escapeJsString(c.username)}')"
         class="w-full p-4 bg-white border border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-xl flex items-center gap-4 transition group text-left">
         <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
           ${c.name.charAt(0).toUpperCase()}
         </div>
         <div>
-          <h4 class="font-bold text-slate-900">${c.name}</h4>
+          <h4 class="font-bold text-slate-900">${Sanitize.escapeHtml(c.name)}</h4>
           <span class="text-xs px-2 py-0.5 bg-white rounded border border-slate-200 text-slate-500">${c.role}</span>
         </div>
       </button>
@@ -313,7 +313,7 @@ const LoginPage = {
     if (user === 'admin' && pass === 'admin') {
       let adminUser = users.find(u => u.username === 'admin' && u.role === 'Administrador');
       if (!adminUser) {
-        const hash = await AuthUtils.hashPassword('admin');
+        const hash = await AuthService.hashPassword('admin');
         adminUser = {
           id: Date.now(),
           name: 'Administrador Principal',
@@ -328,10 +328,10 @@ const LoginPage = {
       } else {
         // si existe pero no tiene password, se lo ponemos
         if (!adminUser.password) {
-          adminUser.password = await AuthUtils.hashPassword('admin');
+          adminUser.password = await AuthService.hashPassword('admin');
           Store.set(Store.KEYS.USERS, users);
         } else {
-          const ok = await AuthUtils.verifyPassword('admin', adminUser.password);
+          const ok = await AuthService.verifyPassword('admin', adminUser.password);
           if (!ok) {
             Components.toast('El admin cambió su contraseña. Usa la nueva.', 'error');
             this.recordFail(user);
@@ -352,7 +352,7 @@ const LoginPage = {
       return;
     }
 
-    const ok = await AuthUtils.verifyPassword(pass, found.password);
+    const ok = await AuthService.verifyPassword(pass, found.password);
     if (!ok) {
       Components.toast('Acceso denegado o credenciales incorrectas', 'error');
       this.recordFail(user);
@@ -375,13 +375,18 @@ const LoginPage = {
       return;
     }
 
+    if (!Sanitize.isValidUsername(user)) {
+      Components.toast('Usuario inválido: usa solo letras, números, punto, guion o guion bajo (3-32 caracteres)', 'error');
+      return;
+    }
+
     const users = Store.get(Store.KEYS.USERS) || [];
     if (users.find(u => u.username === user)) {
       Components.toast('El nombre de usuario ya existe', 'warning');
       return;
     }
 
-    const hashed = await AuthUtils.hashPassword(pass);
+    const hashed = await AuthService.hashPassword(pass);
 
     const newAdmin = {
       id: Date.now(),
@@ -410,7 +415,7 @@ const LoginPage = {
     if (!found) return;
 
     Components.modal({
-      title: `Entrar como ${found.name}`,
+      title: `Entrar como ${Sanitize.escapeHtml(found.name)}`,
       content: `
 <form class="space-y-3">
   <div>
@@ -437,7 +442,7 @@ const LoginPage = {
           return false;
         }
 
-        const ok = await AuthUtils.verifyPassword(pass, found.password);
+        const ok = await AuthService.verifyPassword(pass, found.password);
         if (!ok) {
           Components.toast('Contraseña incorrecta', 'error');
           this.recordFail(username);
@@ -452,14 +457,14 @@ const LoginPage = {
   },
 
   loginSuccess(user) {
-    Store.set(Store.KEYS.USER, {
+    AuthService.login({
       ...user,
       loggedIn: true,
       loginTime: new Date().toISOString()
     });
 
     if (Store.security && Store.security.addLog) {
-      Store.security.addLog(`Inicio de sesión: ${user.username} (${user.role})`, 'auth');
+      Store.security.addLog(`Inicio de sesión: ${Sanitize.escapeHtml(user.username)} (${user.role})`, 'auth');
     }
 
     Components.toast(`Bienvenido, ${user.name}`, 'success');

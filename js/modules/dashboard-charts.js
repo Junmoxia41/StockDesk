@@ -222,7 +222,7 @@ const DashboardCharts = {
                         return `
                             <div class="p-3 bg-slate-50 rounded-lg">
                                 <div class="flex justify-between items-center mb-2">
-                                    <span class="font-medium text-slate-900">${w.name}</span>
+                                    <span class="font-medium text-slate-900">${Sanitize.escapeHtml(w.name)}</span>
                                     <span class="text-sm text-slate-500">${count} productos</span>
                                 </div>
                                 <p class="text-lg font-bold text-orange-600">$${value.toFixed(2)}</p>

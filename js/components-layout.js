@@ -46,9 +46,7 @@ const LayoutComponents = {
   },
 
   logout() {
-    try {
-      localStorage.removeItem(Store.KEYS.USER);
-    } catch (_) {}
+    AuthService.logout();
     Components.toast('Sesión cerrada', 'info');
     Router.navigate('landing');
   },
@@ -57,8 +55,7 @@ const LayoutComponents = {
     const device = Store.device.get();
     const isMobile = device === 'mobile' || device === 'tablet';
 
-    const user = Store.get(Store.KEYS.USER);
-    const roleName = user?.role || 'guest';
+    const roleName = AuthService.getCurrentRole();
     const perms = this._expandPermissions(this._getRolePermissions(roleName));
 
     // Menú base + permisos por item
