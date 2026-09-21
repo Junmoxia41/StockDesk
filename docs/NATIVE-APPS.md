@@ -99,6 +99,15 @@ en el `.exe`.
   del propio APK (vía python-for-android), el archivo pesa más que una
   app Android nativa típica (decenas de MB). Es el costo esperado de este
   enfoque de "empaquetar la web sin reescribirla en Kotlin/Java".
+- **Solo arquitectura `arm64-v8a`**: cubre la inmensa mayoría de
+  dispositivos Android vendidos desde ~2019, pero **no instala en
+  dispositivos de 32 bits antiguos** (`armeabi-v7a`). No se compila para
+  ambas arquitecturas a la vez porque dispara un bug conocido de
+  python-for-android (reutiliza un directorio de compilación temporal
+  entre arquitecturas sin limpiarlo, corrompiendo `pip` en la segunda) —
+  confirmado con un build real de este proyecto. Si en el futuro se
+  necesita soporte de 32 bits, requeriría una build separada por
+  arquitectura.
 - **Icono/splash**: se reutiliza el icono PWA existente
   (`assets/icons/icon-512.png`); no se ha diseñado un branding nativo
   específico por plataforma.

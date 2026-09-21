@@ -50,8 +50,16 @@ android.api = 33
 # (int) Minimum API
 android.minapi = 24
 
-# (list) Arquitecturas objetivo
-android.archs = arm64-v8a, armeabi-v7a
+# (list) Arquitecturas objetivo.
+# Solo arm64-v8a (cubre la enorme mayoría de dispositivos Android desde
+# ~2019). Compilar para varias arquitecturas a la vez
+# (p.ej. "arm64-v8a, armeabi-v7a") dispara un bug conocido de
+# python-for-android: reutiliza el mismo directorio de venv entre
+# arquitecturas sin limpiarlo, dejando un pip corrupto en la segunda
+# ("ImportError: cannot import name 'BuildDependencyInstallError' from
+# pip._internal.exceptions"), confirmado en un build real de este
+# proyecto en GitHub Actions.
+android.archs = arm64-v8a
 
 # (bool) Acepta automáticamente las licencias del SDK en CI
 android.accept_sdk_license = True
