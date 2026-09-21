@@ -1,0 +1,56 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-android:
+    name: Build StockDesk.apk
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Copy web app assets into native/android/webapp
+        run: python3 native/copy_web_assets.py android
+
+      - name: Copy shared server.py next to main.py
+        run: cp native/server.py native/android/server.py
+
+      # Usa la imagen oficial de Buildozer en Docker (incluye Android
+      # SDK/NDK ya configurados), así el runner de GitHub Actions no
+      # necesita instalar ~10 GB de herramientas manualmente.
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          workdir: native/android
+          buildozer_version: stable
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          mkdir -p out
+          cp "${{ steps.buildozer.outputs.filename }}" out/StockDesk-android.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StockDesk-android-apk
+          path: out/StockDesk-android.apk
+          retention-days: 30
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/StockDesk-android.apk

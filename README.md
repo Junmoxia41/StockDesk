@@ -88,11 +88,23 @@ StockDesk incluye `vercel.json` listo para desplegar en Vercel (rewrites
 de SPA, caché diferenciada por tipo de asset, headers de seguridad básicos).
 Ver **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
 
+## Apps nativas (Windows / Android)
+
+StockDesk también se puede empaquetar como app de escritorio para
+**Windows** (`.exe` de un solo archivo, con pywebview) y como **APK de
+Android** (con python-for-android), sirviendo la misma web localmente
+dentro de una ventana/WebView nativo — sin backend nuevo, sin
+sincronización entre dispositivos. Los binarios se compilan en GitHub
+Actions (no se commitean al repo). Ver
+**[`docs/NATIVE-APPS.md`](docs/NATIVE-APPS.md)** para cómo descargarlos e
+instalarlos, y `native/README.md` para el detalle técnico.
+
 ## Documentación
 
 | Documento | Contenido |
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Arquitectura técnica, capas, persistencia de datos |
+| [`docs/NATIVE-APPS.md`](docs/NATIVE-APPS.md) | App de Windows (.exe) y Android (.apk): cómo compilarlas e instalarlas |
 | [`docs/PRODUCTION-AUDIT.md`](docs/PRODUCTION-AUDIT.md) | Auditoría honesta: qué es real, simulado o no implementado |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Despliegue en Vercel, PWA, Service Worker |
 | [`docs/INSTALLATION.md`](docs/INSTALLATION.md) | Instalación local y primer uso |
@@ -103,6 +115,7 @@ Ver **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
 | [`docs/SUPPORT.md`](docs/SUPPORT.md) | Canales y alcance del soporte |
 | [`docs/POSITIONING.md`](docs/POSITIONING.md) | Para quién es (y no es) StockDesk |
 | [`docs/LICENSING.md`](docs/LICENSING.md) | Modelo técnico de licenciamiento propuesto |
+| [`docs/ASSET-SALE.md`](docs/ASSET-SALE.md) | Cómo plantear una venta total del proyecto (cesión de derechos) |
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Solución de problemas comunes |
 | [`docs/PRODUCTION-CHECKLIST.md`](docs/PRODUCTION-CHECKLIST.md) | Checklist antes de un release |
 | [`docs/PRODUCTION-TODO.md`](docs/PRODUCTION-TODO.md) | Roadmap técnico pendiente por fase |

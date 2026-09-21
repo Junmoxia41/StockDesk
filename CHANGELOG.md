@@ -6,6 +6,34 @@ Ver `docs/RELEASE.md` para el proceso de publicación.
 
 ## [Unreleased]
 
+### Agregado (apps nativas Windows / Android)
+- Nueva carpeta `native/` que empaqueta la misma app web como app nativa,
+  sin reescribir código de negocio: un servidor HTTP local compartido
+  (`native/server.py`, solo librería estándar) sirve `index.html`/`css`/
+  `js`/`assets` desde `127.0.0.1`.
+  - **Windows**: `native/windows/main.py` (pywebview) + `build.spec` de
+    PyInstaller para generar un único `StockDesk.exe`.
+  - **Android**: `native/android/main.py` + `buildozer.spec` usando el
+    bootstrap `webview` de python-for-android (sin Kivy) para generar un
+    `.apk`.
+- `.github/workflows/build-windows.yml` y `.github/workflows/build-android.yml`:
+  compilan ambos binarios en runners reales de GitHub Actions
+  (`workflow_dispatch` o al crear un tag `v*`), y los publican como
+  artifact descargable y, en tags, como asset de una Release.
+- `docs/NATIVE-APPS.md`: guía honesta de cómo compilar, descargar e
+  instalar ambas apps, incluyendo limitaciones (sin sincronización entre
+  dispositivos, APK firmado en modo debug, sin auto-actualización).
+- `assets/icons/icon-256.ico` generado a partir del icono PWA existente
+  para el `.exe` de Windows.
+
+### Agregado (paquete de venta / cesión de derechos)
+- `docs/ASSET-SALE.md`: guía para plantear la venta total de StockDesk
+  (cesión de derechos) vs. seguir licenciando (modelo ya existente en
+  `LICENSE-COMMERCIAL.md`), con checklist de due diligence honesto.
+- `docs/COPYRIGHT-ASSIGNMENT-TEMPLATE.md`: borrador de contrato de cesión
+  de derechos de autor, explícitamente marcado como plantilla a revisar
+  por un abogado antes de firmarse.
+
 ### Agregado (capa de servicios)
 - Nueva carpeta `js/services/` con fachadas desacopladas, genuinamente
   integradas en el código existente (no solo añadidas sin uso real):
