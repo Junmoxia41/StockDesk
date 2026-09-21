@@ -6,6 +6,24 @@ Ver `docs/RELEASE.md` para el proceso de publicación.
 
 ## [Unreleased]
 
+### Verificado end-to-end (CI real)
+- Ambos workflows se dispararon realmente en GitHub Actions (tag
+  `v1.0.0`) y se corrigieron 3 problemas encontrados en la práctica hasta
+  lograr builds 100% verdes:
+  1. La imagen Docker de la action de terceros `ArtemSBulgakov/buildozer-action@v1`
+     estaba rota (repositorio PPA de Java sin `Release` para la base de
+     Ubuntu usada) → sustituida por instalación directa de Buildozer en
+     `ubuntu-22.04`.
+  2. Bug conocido de python-for-android al compilar varias arquitecturas
+     en la misma build (venv compartido se corrompe entre `arm64-v8a` y
+     `armeabi-v7a`) → build restringido a `arm64-v8a` únicamente.
+  3. `JAVA_HOME` del runner apuntaba a JDK 11 por defecto y el Android
+     Gradle Plugin requiere JDK 17 → fijado explícitamente en el workflow.
+- Resultado confirmado: `StockDesk-windows.exe` (~15 MB) y
+  `StockDesk-android.apk` (~12 MB) publicados como assets reales de la
+  [release v1.0.0](https://github.com/Junmoxia41/StockDesk/releases/tag/v1.0.0)
+  en GitHub, ambos generados por CI real (no simulado).
+
 ### Agregado (apps nativas Windows / Android)
 - Nueva carpeta `native/` que empaqueta la misma app web como app nativa,
   sin reescribir código de negocio: un servidor HTTP local compartido
