@@ -124,7 +124,7 @@ cliente**, **ausencia total de artefactos de producción** (LICENSE, `.gitignore
 
 Notas de esta limpieza:
 - Se detectaron y corrigieron **falsos positivos** del primer barrido automático de escape: campos que van a CSV (`a.download`, exports) o al *prompt* de texto plano hacia la API de IA (`buildSystemPrompt`, `ai-advanced.js`) no deben llevar entidades HTML — se revirtieron y en su lugar se usa `Sanitize.csvField()` donde corresponde a CSV.
-- Se identificó que `js/modules/users-roles.js` no está referenciado en `index.html` (código muerto, `UsersManagement` es el módulo realmente activo); se deja documentado para limpieza en P2/P3, no se modificó.
+- Se identificó que `js/modules/users-roles.js` no estaba referenciado en `index.html` (código muerto, `UsersManagement` es el módulo realmente activo); **eliminado del repositorio en P3** de esta sesión (ver sección P3 más abajo).
 
 ### P2 — Importante (arquitectura, documentación) — **Documentación y PWA completadas en esta sesión; servicios desacoplados pendientes**
 - [x] **PWA real**: `manifest.webmanifest`, `service-worker.js` (cachea solo el app-shell same-origin con stale-while-revalidate; nunca cachea peticiones cross-origin ni la API de IA), set completo de iconos (`assets/icons/`) + `favicon.ico`, registro y flujo de actualización ("Nueva versión disponible") integrados en `js/app.js`.
@@ -135,11 +135,15 @@ Notas de esta limpieza:
 - [x] **Documentación técnica completa en `docs/`**: `ARCHITECTURE.md` (capas, flujo de datos, persistencia, backend futuro — incluye la "Documentación honesta LOCAL MODE" de autenticación/RBAC como parte de la sección de seguridad), `DEPLOYMENT.md`, `ENVIRONMENT.md` (+ `.env.example`), `INSTALLATION.md`, `AI.md`, `BACKUPS.md`, `SECURITY.md` (tabla completa real vs. simulado vs. no implementado), `SUPPORT.md`, `POSITIONING.md`, `TROUBLESHOOTING.md`, `PRODUCTION-CHECKLIST.md`, `PRODUCTION-TODO.md`, `RELEASE.md`; además `.github/SECURITY.md` para reporte de vulnerabilidades.
 - [ ] Introducir capa de servicios (`AIService`, `BackupService`, `StorageService`, `AuthService`, `LicenseService`) para desacoplar módulos de `localStorage`/lógica directa — **pendiente**, documentado conceptualmente en `docs/ARCHITECTURE.md` (sección 2.5) y `docs/LICENSING.md`, no implementado en código.
 
-### P3 — Mejoras
+### P3 — Mejoras (en curso)
+- [x] **Eliminado código muerto**: `js/modules/users-roles.js` (no estaba cargado en `index.html`; el módulo activo es `users-management.js`).
+- [x] **Cierre del etiquetado honesto pendiente**: se añadieron insignias "Simulado/No implementado" a los interruptores restantes sin etiquetar: Protección Fuerza Bruta y Anti-SQL Injection (`security-threats.js`), Restricción por IP (`security-access.js`, usa una IP fija de demostración), Encriptación de datos (`security-auth.js`), Enmascaramiento de Datos, Borrado Seguro y Nivel de Encriptación (`security-protection.js`). Se corrigió además el "Nivel de Seguridad" de la pantalla principal de Seguridad (`security.js`), renombrado a "Nivel de Configuración" con insignia aclaratoria, para no insinuar una auditoría de seguridad real. Se eliminaron las menciones a "AES-128/AES-256/Militar" como si fueran cifrado activo: hoy no hay ninguna implementación de cifrado en el código (`crypto.subtle.encrypt` no se usa en ningún módulo).
+- [x] **Corregido mismatch de escapador** en `donations.js`: los valores interpolados dentro de `onclick="...('...')"` ahora usan `Sanitize.escapeJsString()` en vez de `escapeHtml()` (necesario porque el navegador decodifica entidades HTML del atributo antes de ejecutar el JS).
+- [x] **Reforzado el escape en el registro de auditoría** (`js/pages/users.js`, tabla de auditoría): `log.user`, `log.action`, `log.module` y `log.details` ahora se escapan con `Sanitize.escapeHtml()` como defensa en profundidad.
+- [x] **Auditoría XSS completada** para los archivos que quedaban pendientes: `js/pages/{inventory,finance,dashboards,users,landing,splash,device-setup,login}.js` (solo interpolan datos internos fijos o ya escapados; `users.js` reforzado), `js/modules/notifications-alerts.js` (solo interpola números/horas de `<input>`, sin riesgo), `js/modules/guide-content.js` (sin interpolaciones), `js/components-layout.js` (solo interpola datos internos del menú, no input de usuario).
 - [ ] Dividir archivos JS grandes (`login.js` 479 líneas, `sales.js` 479 líneas) en módulos más pequeños.
 - [ ] Sustituir los `alert()` residuales por el sistema de `Components.toast`.
 - [ ] Añadir tests unitarios a las fórmulas financieras (redondeo, balances).
-- [ ] Eliminar o integrar `js/modules/users-roles.js` (no está cargado en `index.html`; el módulo activo es `users-management.js`). Es código muerto que puede confundir a futuros mantenedores.
 
 ---
 

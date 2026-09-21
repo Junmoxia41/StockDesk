@@ -101,8 +101,11 @@ const SecurityAuth = {
 
       <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
         <div>
-          <p class="font-medium text-slate-900">Encriptación de datos</p>
-          <p class="text-sm text-slate-500">Cifrar información sensible (simulado)</p>
+          <p class="font-medium text-slate-900 flex items-center gap-2">
+            Encriptación de datos
+            ${Components.simulatedBadge('Simulado', 'Este interruptor no cifra los datos almacenados en localStorage: solo guarda una preferencia. Los datos de negocio se guardan en texto plano en el navegador (ver PRIVACY.md).')}
+          </p>
+          <p class="text-sm text-slate-500">Cifrar información sensible (no implementado; los datos se guardan sin cifrar en el navegador)</p>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" ${security.encryptionEnabled ? 'checked' : ''} onchange="SecurityAuth.toggleEncryption(this.checked)" class="sr-only peer">

@@ -26,8 +26,11 @@ const SecurityAccess = {
                                 ${Components.icons.monitor}
                             </div>
                             <div>
-                                <h4 class="font-semibold text-slate-900">Restricción por IP</h4>
-                                <p class="text-sm text-slate-500">Solo permitir acceso desde IPs confiables</p>
+                                <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                                    Restricción por IP
+                                    ${Components.simulatedBadge('Simulado', 'Esta app no tiene servidor, por lo que no puede leer la IP real del dispositivo. La "IP actual" usada para comparar es un valor fijo de demostración (192.168.1.100), no la IP real de tu red.')}
+                                </h4>
+                                <p class="text-sm text-slate-500">Solo permitir acceso desde IPs confiables (simulado con una IP de demostración fija)</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">

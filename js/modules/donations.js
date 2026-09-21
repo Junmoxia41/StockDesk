@@ -52,7 +52,7 @@ const DonationsModule = {
                     
                     <!-- Tarjeta Visual -->
                     <div class="relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-5 text-white shadow-lg shadow-blue-500/30 group cursor-pointer transition-transform transform hover:scale-[1.02]"
-                         onclick="DonationsModule.copyToClipboard('${this.config.cuba.transfermovil}')">
+                         onclick="DonationsModule.copyToClipboard('${Sanitize.escapeJsString(this.config.cuba.transfermovil)}')">
                         <div class="absolute top-0 right-0 p-4 opacity-10">
                             <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M4 10h16v10H4zM4 6h16v2H4z"></path></svg>
                         </div>
@@ -77,7 +77,7 @@ const DonationsModule = {
 
                     <!-- Opción Móvil -->
                     <div class="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between hover:border-orange-300 transition group"
-                         onclick="DonationsModule.copyToClipboard('${Sanitize.escapeHtml(this.config.cuba.phone)}')">
+                         onclick="DonationsModule.copyToClipboard('${Sanitize.escapeJsString(this.config.cuba.phone)}')">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>

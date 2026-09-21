@@ -6,6 +6,27 @@ Ver `docs/RELEASE.md` para el proceso de publicación.
 
 ## [Unreleased]
 
+### Eliminado
+- `js/modules/users-roles.js`: código muerto, no estaba cargado en
+  `index.html` (el módulo activo de gestión de usuarios es
+  `users-management.js`).
+
+### Cambiado (adicional)
+- Etiquetado honesto de funciones simuladas ampliado a los interruptores
+  que faltaban: Protección Fuerza Bruta y Anti-SQL Injection
+  (`security-threats.js`), Restricción por IP (`security-access.js`),
+  Encriptación de datos, Enmascaramiento de Datos, Borrado Seguro y Nivel
+  de Encriptación (`security-auth.js`/`security-protection.js`). Se
+  eliminaron las menciones a "AES-128/AES-256/Militar" que sugerían
+  cifrado real donde no existe ninguna implementación de cifrado en el
+  código.
+- El "Nivel de Seguridad" de la pantalla de Seguridad se renombró a "Nivel
+  de Configuración" con una insignia aclaratoria, para no insinuar una
+  auditoría de seguridad real.
+- Corregido mismatch de escapador en `donations.js` (`escapeJsString` en
+  vez de `escapeHtml` dentro de atributos `onclick`).
+- Reforzado el escape en la tabla de auditoría de usuarios (`js/pages/users.js`).
+
 ### Agregado
 - Documentación comercial y técnica completa: `README.md`, `LICENSE`,
   `LICENSE-COMMERCIAL.md`, `PRIVACY.md`, `TERMS.md`,

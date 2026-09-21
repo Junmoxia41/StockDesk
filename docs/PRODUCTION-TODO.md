@@ -16,15 +16,20 @@ es un compromiso de fechas, es un registro de próximos pasos técnicos.
       esquema) antes de restaurar/importar.
 - [x] `.gitignore` para excluir artefactos y secretos.
 - [x] Auditoría del historial de git en busca de secretos expuestos.
-- [ ] Etiquetado "Simulado" completo en `security-threats.js` y
-      `security-access.js` (parcialmente aplicado, revisar cobertura total
-      de toggles).
-- [ ] Revisar y corregir mismatch de escapador detectado en
-      `donations.js:80` (uso de `onclick` con posible escape incorrecto).
-- [ ] Completar auditoría XSS de archivos aún no revisados:
-      `js/pages/{inventory,finance,security,dashboards,users,landing,splash,device-setup}.js`,
-      `js/modules/{security-protection,notifications-alerts,guide-content}.js`,
-      `js/components-layout.js`.
+- [x] Etiquetado "Simulado/No implementado" completo en `security-threats.js`,
+      `security-access.js`, `security-auth.js` y `security-protection.js`
+      (incluye la corrección del "Nivel de Seguridad" engañoso y la
+      eliminación de menciones a "AES-128/256/Militar" sin cifrado real).
+- [x] Corregido mismatch de escapador en `donations.js` (ahora usa
+      `Sanitize.escapeJsString()` para valores dentro de `onclick`).
+- [x] Completada auditoría XSS de los archivos que quedaban pendientes:
+      `js/pages/{inventory,finance,dashboards,users,landing,splash,device-setup,login}.js`
+      (sin hallazgos nuevos, salvo refuerzo de escape en la tabla de
+      auditoría de `users.js`), `js/modules/{notifications-alerts,guide-content}.js`,
+      `js/components-layout.js` (sin hallazgos: solo interpolan datos
+      internos, no input de usuario). Nota: `js/pages/security.js` y sus
+      submódulos también quedaron cubiertos como parte del trabajo de
+      etiquetado honesto de esta misma ronda.
 
 ## P2 — Producto comercial y despliegue (en curso)
 
@@ -43,12 +48,12 @@ es un compromiso de fechas, es un registro de próximos pasos técnicos.
       directamente en páginas/módulos (ver `docs/ARCHITECTURE.md`,
       sección 2.5).
 
-## P3 — Mantenibilidad de código (no iniciado)
+## P3 — Mantenibilidad de código (en curso)
 
+- [x] Eliminar código muerto: `js/modules/users-roles.js` (no estaba cargado
+      en `index.html`).
 - [ ] Dividir archivos JS grandes hacia un objetivo aproximado de ~200
       líneas por archivo, donde sea razonable sin romper cohesión lógica.
-- [ ] Eliminar código muerto: `js/modules/users-roles.js` (no está cargado
-      en `index.html`).
 - [ ] Evaluar introducir un `LicenseService` real si se decide comercializar
       con activación de licencias (ver `docs/LICENSING.md`).
 - [ ] Evaluar migración progresiva de `localStorage` a IndexedDB si el

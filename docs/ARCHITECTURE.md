@@ -83,7 +83,7 @@ Sub-funcionalidades agrupadas por dominio dentro de `js/modules/`:
 | Dashboards | `dashboard-widgets`, `dashboard-charts` |
 | IA | `ai-assistant`, `ai-chat`, `ai-advanced` |
 | Personalización | `customization-themes`, `customization-tickets` |
-| Usuarios | `users-management`, `users-shifts` (nota: `users-roles.js` existe en el repo pero **no está cargado en `index.html`**, es código muerto pendiente de limpieza) |
+| Usuarios | `users-management`, `users-shifts` |
 | Notificaciones | `notifications-center`, `notifications-alerts` |
 | Proveedores | `suppliers-directory`, `suppliers-orders` |
 | Utilidades | `auth-utils` (hashing SHA-256 de contraseñas), `ticket-printer` (impresión de tickets con escape HTML propio), `guide-content`, `donations` |

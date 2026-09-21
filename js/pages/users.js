@@ -86,10 +86,10 @@ const UsersPage = {
                                     ${logs.slice().reverse().slice(0, 50).map(log => `
                                         <tr class="table-row-hover">
                                             <td class="px-4 py-3 text-sm">${new Date(log.date).toLocaleString('es')}</td>
-                                            <td class="px-4 py-3 text-sm font-medium">${log.user}</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-600">${log.action}</span></td>
-                                            <td class="px-4 py-3 text-sm">${log.module}</td>
-                                            <td class="px-4 py-3 text-sm text-slate-500">${log.details || '-'}</td>
+                                            <td class="px-4 py-3 text-sm font-medium">${Sanitize.escapeHtml(log.user)}</td>
+                                            <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-600">${Sanitize.escapeHtml(log.action)}</span></td>
+                                            <td class="px-4 py-3 text-sm">${Sanitize.escapeHtml(log.module)}</td>
+                                            <td class="px-4 py-3 text-sm text-slate-500">${Sanitize.escapeHtml(log.details || '-')}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
