@@ -195,30 +195,12 @@ const SecurityBackup = {
     Components.toast('Retención actualizada', 'success');
   },
 
-  // FIX: Backup completo por KEYS (v2), con checksum de integridad
+  // Backup completo por KEYS (v2), con checksum de integridad.
+  // La construcción del backup vive en BackupService (js/services/
+  // backup-service.js) para poder reutilizarse fuera de esta pantalla;
+  // aquí solo se maneja el log/toast/navegación propios de la UI.
   createBackup() {
-    const keysData = {};
-    Object.values(Store.KEYS).forEach(k => {
-      keysData[k] = Store.get(k);
-    });
-
-    const data = {
-      format: 'stockdesk-backup-v2',
-      appVersion: '2026.4',
-      createdAt: new Date().toISOString(),
-      keys: keysData
-    };
-    data.checksum = BackupValidator.checksum(JSON.stringify(data));
-
-    const backup = {
-      id: Date.now().toString(),
-      name: `Backup-${new Date().toISOString().split('T')[0]}`,
-      date: new Date().toISOString(),
-      size: `${(JSON.stringify(data).length / 1024).toFixed(1)} KB`,
-      data: data
-    };
-
-    Store.security.addBackup(backup);
+    BackupService.createBackup();
     Store.security.addLog('Respaldo creado manualmente');
     Components.toast('Respaldo creado correctamente', 'success');
     Router.navigate('security');
@@ -242,37 +224,22 @@ const SecurityBackup = {
 
         const data = backup.data;
 
-        // v2: validar integridad y esquema ANTES de escribir nada
-        if (data.format === 'stockdesk-backup-v2') {
-          const result = BackupValidator.validateV2(data);
-          if (!result.valid) {
-            Components.toast(`No se pudo restaurar: ${result.error}`, 'error', 5000);
-            Store.security.addLog(`Restauración de "${backup.name}" cancelada: ${result.error}`, 'data');
-            return;
-          }
-
-          Object.entries(data.keys).forEach(([key, value]) => {
-            if (value !== undefined) Store.set(key, value);
-          });
-          Store.security.addLog(`Respaldo ${backup.name} restaurado (v2, integridad verificada)`);
-          Components.toast('Datos restaurados correctamente', 'success');
-          Router.navigate('security');
-          return;
-        }
-
-        // v1: compatibilidad con backups viejos (formato heredado sin checksum)
         if (typeof data !== 'object' || data === null) {
           Components.toast('No se pudo restaurar: archivo inválido', 'error');
           return;
         }
-        if (data.products) Store.set(Store.KEYS.PRODUCTS, data.products);
-        if (data.sales) Store.set(Store.KEYS.SALES, data.sales);
-        if (data.transactions) Store.set(Store.KEYS.TRANSACTIONS, data.transactions);
-        if (data.settings) Store.set(Store.KEYS.SETTINGS, data.settings);
-        if (data.warehouses) Store.set(Store.KEYS.WAREHOUSES, data.warehouses);
-        if (data.payroll) Store.set(Store.KEYS.PAYROLL, data.payroll);
 
-        Store.security.addLog(`Respaldo ${backup.name} restaurado (v1, sin verificación de integridad)`);
+        // BackupService.restore() valida (checksum + esquema) ANTES de
+        // escribir nada en localStorage; si falla, no se toca ningún dato.
+        const outcome = BackupService.restore(data);
+        if (!outcome.success) {
+          Components.toast(`No se pudo restaurar: ${outcome.error}`, 'error', 5000);
+          Store.security.addLog(`Restauración de "${backup.name}" cancelada: ${outcome.error}`, 'data');
+          return;
+        }
+
+        const isV2 = data.format === 'stockdesk-backup-v2';
+        Store.security.addLog(`Respaldo ${backup.name} restaurado (${isV2 ? 'v2, integridad verificada' : 'v1, sin verificación de integridad'})`);
         Components.toast('Datos restaurados correctamente', 'success');
         Router.navigate('security');
       }
@@ -328,22 +295,16 @@ const SecurityBackup = {
         return;
       }
 
-      // Solo se acepta el formato v2 (con checksum) para archivos importados
-      // manualmente. Se valida ANTES de agregarlo a la lista de backups.
-      if (data && data.format === 'stockdesk-backup-v2') {
-        const result = BackupValidator.validateV2(data);
-        if (!result.valid) {
-          Components.toast(`No se pudo importar: ${result.error}`, 'error', 5000);
-          input.value = '';
-          return;
-        }
-      } else if (!data || typeof data !== 'object') {
-        Components.toast('El archivo no tiene una estructura de backup reconocible', 'error');
+      // Se valida ANTES de agregarlo a la lista de backups, usando la misma
+      // validación (BackupService.validate) que usa restore(). Formatos
+      // heredados (v1) se aceptan pero se marcan como no verificados;
+      // restore() seguirá revalidando en el momento de restaurar.
+      const validation = BackupService.validate(data);
+      if (!validation.valid) {
+        Components.toast(`No se pudo importar: ${validation.error}`, 'error', 5000);
         input.value = '';
         return;
       }
-      // Formatos heredados (v1) se aceptan pero se marcan como no verificados;
-      // restore() seguirá revalidando en el momento de restaurar.
 
       const backup = {
         id: Date.now().toString(),

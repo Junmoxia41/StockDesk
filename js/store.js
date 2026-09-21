@@ -212,7 +212,15 @@ const Store = {
     });
   },
 
+  // NOTA (P3, capa de servicios): get/set delegan en StorageService
+  // (js/services/storage-service.js), que encapsula el acceso real a
+  // localStorage. Esto permite sustituir la persistencia (p. ej. por
+  // IndexedDB o un backend remoto) sin tocar Store ni el resto de la app,
+  // que siempre habla con Store.get()/Store.set(). Ver docs/ARCHITECTURE.md.
   get(key) {
+    if (typeof StorageService !== 'undefined') return StorageService.get(key);
+    // Fallback defensivo si StorageService no llegó a cargar (no debería
+    // ocurrir en un despliegue normal; ver index.html).
     try {
       const data = localStorage.getItem(key);
       return data ? JSON.parse(data) : null;
@@ -223,18 +231,40 @@ const Store = {
   },
 
   set(key, value) {
+    let result;
+    if (typeof StorageService !== 'undefined') {
+      result = StorageService.set(key, value);
+    } else {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+        result = true;
+      } catch (e) {
+        result = { error: true, name: e.name, message: e.message };
+      }
+    }
+
+    if (result === true) return true;
+
+    // result es un objeto de error ({ error, name, message })
+    const err = result || {};
+    console.error(`Store.set error (${key}):`, err.message || err);
+    if (err.name === 'QuotaExceededError') {
+      if (typeof Components !== 'undefined' && Components.toast) {
+        Components.toast('[WARN] Memoria llena. Borra historial antiguo.', 'warning', 5000);
+      } else {
+        alert('Memoria llena. Borra historial antiguo.');
+      }
+    }
+    return false;
+  },
+
+  remove(key) {
+    if (typeof StorageService !== 'undefined') return StorageService.remove(key);
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.removeItem(key);
       return true;
     } catch (e) {
-      console.error(`Store.set error (${key}):`, e);
-      if (e.name === 'QuotaExceededError') {
-        if (typeof Components !== 'undefined' && Components.toast) {
-          Components.toast('[WARN] Memoria llena. Borra historial antiguo.', 'warning', 5000);
-        } else {
-          alert('Memoria llena. Borra historial antiguo.');
-        }
-      }
+      console.error(`Store.remove error (${key}):`, e);
       return false;
     }
   },

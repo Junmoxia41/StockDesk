@@ -88,15 +88,34 @@ Sub-funcionalidades agrupadas por dominio dentro de `js/modules/`:
 | Proveedores | `suppliers-directory`, `suppliers-orders` |
 | Utilidades | `auth-utils` (hashing SHA-256 de contraseñas), `ticket-printer` (impresión de tickets con escape HTML propio), `guide-content`, `donations` |
 
-### 2.5. Services (parcialmente implementado)
+### 2.5. Services (`js/services/`)
 
-La auditoría de producción identificó que StockDesk **no tiene** hoy una
-capa formal de servicios desacoplados (`AIService`, `BackupService`,
-`StorageService`, `LicenseService`, `NotificationService`). La lógica de
-IA vive directamente en `ai-chat.js`, la de backups en `security-backup.js`,
-etc. Esto es funcional para el tamaño actual del proyecto, pero se
-recomienda para un futuro backend (ver sección 5) introducir estas
-interfaces para poder sustituir implementaciones sin tocar las páginas.
+Capa de fachadas delgadas introducida en la auditoría de producción (P3)
+para desacoplar páginas/módulos de la implementación concreta de
+persistencia, autenticación, IA, backups y licenciamiento. Cada servicio
+envuelve la implementación real ya existente (no la reemplaza ni la
+duplica), de modo que un futuro backend solo requiera cambiar el servicio,
+no cada página que lo usa.
+
+| Servicio | Envuelve | Usado realmente por |
+|---|---|---|
+| `StorageService` | `localStorage` (get/set/remove/estimateUsageBytes) | `Store.get()/set()/remove()` delegan en él |
+| `AuthService` | `AuthUtils` (hash SHA-256) + `Store.KEYS.USER` | `router.js` (middleware RBAC), `components-layout.js` (sidebar/logout), `login.js` (login/hash), `security-auth.js` (cambio de contraseña), `users-management.js` (hash al crear/editar usuarios) |
+| `AIService` | `AIAssistant`/`ai-chat.js` (config, API key) | `settings.js` (guardar/leer la API key de IA) |
+| `BackupService` | `BackupValidator` + `Store.security.*` (creación/validación/restauración) | `security-backup.js` (`createBackup`, `restore`, `importFile`) |
+| `LicenseService` + `FeatureFlags` | Nada aún (nuevo, ver `docs/LICENSING.md`) | Ninguna página todavía — es la base para un futuro bloqueo de funciones por edición; hoy `FeatureFlags` está todo en `true` |
+
+**Honestidad sobre el alcance de esta capa**: son fachadas fieles a lo que
+ya existía (mismo comportamiento observable), no una reescritura ni una
+mejora de la lógica de negocio subyacente. `LicenseService` es la
+excepción: es código nuevo pero explícitamente **LOCAL/DEMO** (ver
+`docs/LICENSING.md`), sin ningún servidor de licencias detrás.
+
+No se creó un `NotificationService` en esta ronda porque las
+notificaciones (Email/SMS/WhatsApp) siguen siendo únicamente toggles sin
+integración real con ningún proveedor (ver `docs/PRODUCTION-AUDIT.md`,
+hallazgo S8); introducir un servicio para una función inexistente
+generaría una falsa sensación de completitud.
 
 ## 3. Flujo de una operación típica: una venta (POS)
 

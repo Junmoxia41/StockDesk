@@ -6,6 +6,27 @@ Ver `docs/RELEASE.md` para el proceso de publicación.
 
 ## [Unreleased]
 
+### Agregado (capa de servicios)
+- Nueva carpeta `js/services/` con fachadas desacopladas, genuinamente
+  integradas en el código existente (no solo añadidas sin uso real):
+  - `StorageService`: envuelve `localStorage`; `Store.get/set/remove` ahora
+    delegan en él.
+  - `AuthService`: sesión local y hashing de contraseñas; usado por
+    `router.js` (middleware RBAC), `components-layout.js` (sidebar/logout),
+    `login.js`, `security-auth.js` (cambio de contraseña) y
+    `users-management.js`.
+  - `AIService`: configuración de la API key de IA; usado por
+    `settings.js`.
+  - `BackupService`: creación/validación/restauración de backups; usado
+    por `security-backup.js` (reemplaza la lógica duplicada que antes vivía
+    solo en ese módulo).
+  - `LicenseService` + `FeatureFlags`: primera implementación real (aunque
+    LOCAL/DEMO, sin backend) del modelo conceptual descrito en
+    `docs/LICENSING.md`. Ninguna página bloquea funciones con esto todavía.
+- Verificación end-to-end de la integración con un sandbox de Node que
+  carga los ~60 archivos JS en el orden exacto de `index.html` (login,
+  RBAC por rol, cambio de contraseña, creación/validación de backups).
+
 ### Corregido (crítico)
 - **El Asistente de IA nunca se cargaba en producción**: `js/modules/ai-assistant.js`,
   `js/modules/ai-chat.js` y `js/modules/ai-advanced.js` existían completos y eran

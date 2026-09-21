@@ -34,6 +34,12 @@ const APP_SHELL = [
   './js/modules/auth-utils.js',
   './js/modules/ticket-printer.js',
 
+  './js/services/storage-service.js',
+  './js/services/auth-service.js',
+  './js/services/ai-service.js',
+  './js/services/license-service.js',
+  './js/services/backup-service.js',
+
   './js/pages/device-setup.js',
   './js/pages/splash.js',
   './js/pages/landing.js',

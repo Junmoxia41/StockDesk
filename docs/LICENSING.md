@@ -10,9 +10,17 @@
 
 StockDesk **no tiene hoy** un sistema de activación/validación de licencias
 contra un servidor. Cualquier persona con el código puede ejecutar la
-aplicación completa. Este documento describe la arquitectura **propuesta**
-para cuando exista un backend (ver `docs/ARCHITECTURE.md`, sección
-"Backend futuro"), no una funcionalidad ya construida.
+aplicación completa sin restricciones reales. Desde la ronda P3 de la
+auditoría de producción existe una primera implementación de
+`LicenseService`/`FeatureFlags` en `js/services/license-service.js`, pero
+es explícitamente **LOCAL/DEMO**: `activate()`/`deactivate()` solo guardan
+una preferencia en `localStorage`, y `validate()` siempre resuelve válido
+porque no hay ningún servidor contra el que validar. Ninguna página
+consulta todavía `LicenseService`/`FeatureFlags` para bloquear una función:
+son la base para cuando se decida implementar ese bloqueo, no una
+funcionalidad de licenciamiento activa hoy. Este documento describe la
+arquitectura **propuesta** para cuando exista un backend real (ver
+`docs/ARCHITECTURE.md`, sección "Backend futuro").
 
 ## 2. Ediciones propuestas
 
@@ -48,27 +56,28 @@ bloqueo de funciones por edición implementada en el código todavía (ver
 Este objeto **no existe hoy** en el código. Es la forma en la que un futuro
 `LicenseService` (ver `docs/ARCHITECTURE.md`) validaría contra un backend.
 
-## 4. `LicenseService` (interfaz propuesta, no implementada)
+## 4. `LicenseService` (implementación inicial LOCAL/DEMO)
 
 ```js
 LicenseService
- ├── validate(licenseKey)   // consulta al backend si la key es válida
- ├── activate(licenseKey)   // asocia la key a este dispositivo/negocio
- ├── deactivate()           // libera el dispositivo actual
- ├── getStatus()            // { valid, edition, expiresAt, ... }
- └── getFeatures()          // lista de features habilitadas para la edición
+ ├── validate()             // LOCAL: siempre resuelve válido, no hay backend
+ ├── activate(edition)      // guarda la edición elegida en localStorage
+ ├── deactivate()           // vuelve a FREE/DEMO
+ ├── getStatus()            // { valid, edition, verified: false, mode: 'local-demo' }
+ └── getFeatures()          // features nominales de la edición activa (informativo)
 ```
 
-La implementación inicial, si se construye, puede ser **local/demo**
-(simplemente lee un valor de `localStorage`) mientras no exista backend de
-licencias/pagos. Debe quedar documentado explícitamente como tal en la UI,
-igual que se hizo con 2FA/WAF en esta auditoría (ver
-`docs/PRODUCTION-AUDIT.md`).
+Implementado en `js/services/license-service.js`. Es intencionalmente
+**local/demo** (lee/escribe `localStorage`) mientras no exista backend de
+licencias/pagos, y `getStatus()` siempre marca `verified: false` para
+dejarlo explícito. **Ninguna página bloquea funciones según esto todavía**:
+introducirlo sería el siguiente paso si se decide comercializar por
+ediciones.
 
 ## 5. Feature Flags
 
-Para evitar duplicar código por edición, se recomienda un objeto central de
-flags, por ejemplo:
+Implementado en el mismo archivo (`js/services/license-service.js`) como
+`window.FeatureFlags`:
 
 ```js
 FeatureFlags = {
@@ -76,12 +85,15 @@ FeatureFlags = {
   advancedReports: true,
   multiUser: true,
   cloudBackup: false, // requiere backend, no implementado
-  suppliers: true
+  suppliers: true,
+  isEnabled(flag) { return this[flag] === true; }
 }
 ```
 
-Las páginas/módulos consultarían `FeatureFlags.xxx` antes de renderizar una
-sección, en vez de tener bloques de código distintos por edición.
+Hoy todas las flags relevantes están en `true` (o `false` si la función no
+existe, como `cloudBackup`): no hay ninguna página que actualmente consulte
+`FeatureFlags.xxx` para decidir si renderizar una sección. Es la base
+preparada para ese bloqueo futuro, no una funcionalidad activa.
 
 ## 6. Ciclo de vida de una licencia (futuro)
 

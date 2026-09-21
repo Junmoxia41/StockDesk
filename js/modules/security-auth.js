@@ -192,7 +192,7 @@ const SecurityAuth = {
       return;
     }
 
-    const session = Store.get(Store.KEYS.USER);
+    const session = AuthService.getCurrentUser();
     if (!session?.username) {
       Components.toast('No hay sesión válida', 'error');
       return;
@@ -205,17 +205,17 @@ const SecurityAuth = {
       return;
     }
 
-    const ok = await AuthUtils.verifyPassword(currentPass, users[idx].password);
+    const ok = await AuthService.verifyPassword(currentPass, users[idx].password);
     if (!ok) {
       Components.toast('Contraseña actual incorrecta', 'error');
       return;
     }
 
-    users[idx].password = await AuthUtils.hashPassword(newPass);
+    users[idx].password = await AuthService.hashPassword(newPass);
     Store.set(Store.KEYS.USERS, users);
 
     // actualizar sesión también
-    Store.set(Store.KEYS.USER, { ...session, password: users[idx].password });
+    AuthService.updateCurrentUser({ password: users[idx].password });
 
     Store.security.addLog('Contraseña cambiada', 'auth');
     Components.toast('Contraseña actualizada correctamente', 'success');

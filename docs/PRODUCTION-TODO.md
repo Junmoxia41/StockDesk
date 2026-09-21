@@ -52,10 +52,23 @@ es un compromiso de fechas, es un registro de próximos pasos técnicos.
 
 - [x] Eliminar código muerto: `js/modules/users-roles.js` (no estaba cargado
       en `index.html`).
+- [x] Corregido bloqueador crítico: el Asistente de IA (`ai-assistant.js`,
+      `ai-chat.js`, `ai-advanced.js`) nunca se cargaba en `index.html`.
+- [x] **Capa de servicios desacoplados** (`js/services/`): `StorageService`,
+      `AuthService`, `AIService`, `BackupService`, `LicenseService` +
+      `FeatureFlags`. Integrados realmente en el código existente (no solo
+      añadidos y sin usar): `Store.get/set/remove` delegan en
+      `StorageService`; `router.js`, `components-layout.js`, `login.js`,
+      `security-auth.js` y `users-management.js` usan `AuthService`;
+      `settings.js` usa `AIService`; `security-backup.js` usa
+      `BackupService`. `LicenseService`/`FeatureFlags` son código nuevo
+      LOCAL/DEMO (ver `docs/LICENSING.md`), sin ninguna página consultándolo
+      todavía porque no hay bloqueo de funciones por edición implementado.
+      Verificado end-to-end con un sandbox de Node que carga los ~60
+      archivos JS en el orden exacto de `index.html` (login, RBAC, cambio
+      de contraseña, creación/validación de backups, disponibilidad de IA).
 - [ ] Dividir archivos JS grandes hacia un objetivo aproximado de ~200
       líneas por archivo, donde sea razonable sin romper cohesión lógica.
-- [ ] Evaluar introducir un `LicenseService` real si se decide comercializar
-      con activación de licencias (ver `docs/LICENSING.md`).
 - [ ] Evaluar migración progresiva de `localStorage` a IndexedDB si el
       volumen de datos lo justifica (ver `docs/ARCHITECTURE.md`, sección 4).
 

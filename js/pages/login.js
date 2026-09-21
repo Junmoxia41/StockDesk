@@ -313,7 +313,7 @@ const LoginPage = {
     if (user === 'admin' && pass === 'admin') {
       let adminUser = users.find(u => u.username === 'admin' && u.role === 'Administrador');
       if (!adminUser) {
-        const hash = await AuthUtils.hashPassword('admin');
+        const hash = await AuthService.hashPassword('admin');
         adminUser = {
           id: Date.now(),
           name: 'Administrador Principal',
@@ -328,10 +328,10 @@ const LoginPage = {
       } else {
         // si existe pero no tiene password, se lo ponemos
         if (!adminUser.password) {
-          adminUser.password = await AuthUtils.hashPassword('admin');
+          adminUser.password = await AuthService.hashPassword('admin');
           Store.set(Store.KEYS.USERS, users);
         } else {
-          const ok = await AuthUtils.verifyPassword('admin', adminUser.password);
+          const ok = await AuthService.verifyPassword('admin', adminUser.password);
           if (!ok) {
             Components.toast('El admin cambió su contraseña. Usa la nueva.', 'error');
             this.recordFail(user);
@@ -352,7 +352,7 @@ const LoginPage = {
       return;
     }
 
-    const ok = await AuthUtils.verifyPassword(pass, found.password);
+    const ok = await AuthService.verifyPassword(pass, found.password);
     if (!ok) {
       Components.toast('Acceso denegado o credenciales incorrectas', 'error');
       this.recordFail(user);
@@ -386,7 +386,7 @@ const LoginPage = {
       return;
     }
 
-    const hashed = await AuthUtils.hashPassword(pass);
+    const hashed = await AuthService.hashPassword(pass);
 
     const newAdmin = {
       id: Date.now(),
@@ -442,7 +442,7 @@ const LoginPage = {
           return false;
         }
 
-        const ok = await AuthUtils.verifyPassword(pass, found.password);
+        const ok = await AuthService.verifyPassword(pass, found.password);
         if (!ok) {
           Components.toast('Contraseña incorrecta', 'error');
           this.recordFail(username);
@@ -457,7 +457,7 @@ const LoginPage = {
   },
 
   loginSuccess(user) {
-    Store.set(Store.KEYS.USER, {
+    AuthService.login({
       ...user,
       loggedIn: true,
       loginTime: new Date().toISOString()

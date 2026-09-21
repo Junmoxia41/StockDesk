@@ -40,7 +40,7 @@ const SettingsPage = {
         const products = Store.products.getAll();
         const sales = Store.sales.getAll();
         const device = Store.device.get();
-        const aiApiKey = Store.get('stockdesk_ai_apikey') || '';
+        const aiApiKey = AIService.getApiKey();
         
         // Obtener nombre de moneda actual para mostrar en el botón
         const currentCurrency = this.currencies.find(c => c.code === settings.currency) || { name: 'Seleccionar...', code: '' };
@@ -311,11 +311,7 @@ const SettingsPage = {
 
     saveAIKey() {
         const key = document.getElementById('ai-api-key')?.value || '';
-        if (typeof AIAssistant !== 'undefined') {
-            AIAssistant.setApiKey(key);
-        } else {
-            Store.set('stockdesk_ai_apikey', key);
-        }
+        AIService.setApiKey(key);
         Components.toast(key ? 'API Key guardada' : 'API Key eliminada', 'success');
     },
 

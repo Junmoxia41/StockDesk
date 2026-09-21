@@ -50,6 +50,19 @@
   <script src="js/modules/auth-utils.js?v=999"></script>
   <script src="js/modules/ticket-printer.js?v=999"></script>
 
+  <!-- Capa de servicios (P3, auditoría de producción): fachadas delgadas
+       sobre la implementación real (localStorage, AuthUtils, backups, IA),
+       pensadas para poder sustituirse por un backend en el futuro sin
+       tocar páginas/módulos. Ver docs/ARCHITECTURE.md sección 2.5. -->
+  <script src="js/services/storage-service.js?v=999"></script>
+  <script src="js/services/auth-service.js?v=999"></script>
+  <script src="js/services/ai-service.js?v=999"></script>
+  <script src="js/services/license-service.js?v=999"></script>
+  <!-- backup-service.js usa BackupValidator (definido en
+       js/modules/security-backup.js) solo en tiempo de ejecución, así que
+       puede cargar antes de ese módulo sin problema. -->
+  <script src="js/services/backup-service.js?v=999"></script>
+
   <script src="js/pages/device-setup.js?v=999"></script>
   <script src="js/pages/splash.js?v=999"></script>
   <script src="js/pages/landing.js?v=999"></script>

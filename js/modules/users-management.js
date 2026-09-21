@@ -212,7 +212,7 @@ const UsersManagement = {
           return false;
         }
 
-        const hash = await AuthUtils.hashPassword(pass);
+        const hash = await AuthService.hashPassword(pass);
 
         users.push({
           id: Date.now(),
@@ -300,7 +300,7 @@ const UsersManagement = {
             Components.toast('Contraseñas no coinciden', 'error');
             return false;
           }
-          users[idx].password = await AuthUtils.hashPassword(p1);
+          users[idx].password = await AuthService.hashPassword(p1);
         }
 
         this._saveUsers(users);
