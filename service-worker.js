@@ -17,7 +17,7 @@
 
 // Sube este número cada vez que cambie algún archivo del shell para forzar
 // la invalidación de caché de versiones anteriores.
-const CACHE_VERSION = 'stockdesk-shell-v1';
+const CACHE_VERSION = 'stockdesk-shell-v2';
 
 const APP_SHELL = [
   './',

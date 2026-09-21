@@ -106,6 +106,14 @@
 
   <script src="js/modules/donations.js?v=999"></script>
 
+  <!-- Asistente de IA (opcional): define AIAssistant, luego lo extiende con
+       chat (llamadas a GLM/ZhipuAI) y con funciones avanzadas (predicciones,
+       recomendaciones). Debe cargar en este orden porque ai-chat.js y
+       ai-advanced.js extienden el objeto AIAssistant ya definido. -->
+  <script src="js/modules/ai-assistant.js?v=999"></script>
+  <script src="js/modules/ai-chat.js?v=999"></script>
+  <script src="js/modules/ai-advanced.js?v=999"></script>
+
   <script src="js/app.js?v=999"></script>
 
   <div id="ai-container"></div>

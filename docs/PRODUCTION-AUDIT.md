@@ -33,6 +33,15 @@ lo que realmente son** (2FA simulado, WAF/anti-SQLi simulados), **una API key de
 cliente**, **ausencia total de artefactos de producción** (LICENSE, `.gitignore`, `package.json`,
 `vercel.json`, manifest/service worker para PWA) y **sin ninguna suite de pruebas**.
 
+**Segundo hallazgo crítico (equivalente a P0) encontrado y corregido en esta sesión (P3):**
+el **Asistente de IA** (`js/modules/ai-assistant.js`, `ai-chat.js`, `ai-advanced.js`) estaba
+completamente implementado y era sintácticamente válido, pero **no se cargaba en `index.html`**.
+Ninguno de los tres archivos tenía su `<script>` correspondiente, así que `AIAssistant` era
+`undefined` en cualquier navegador real: el botón flotante nunca aparecía y toda la
+funcionalidad de IA (chat, respuestas offline, predicciones/recomendaciones) estaba muerta en
+producción pese a estar documentada como operativa. Corregido añadiendo los tres `<script>` en
+el orden de dependencia correcto (ver sección P3 más abajo).
+
 ---
 
 ## 2. TABLA: DOCUMENTADO vs IMPLEMENTADO vs PROBADO vs PRODUCCIÓN
@@ -50,7 +59,7 @@ cliente**, **ausencia total de artefactos de producción** (LICENSE, `.gitignore
 | 2FA | ✅ ("Autenticación de Dos Factores") | ⚠️ **Simulado** — `setup2FA()` genera un código aleatorio de 6 caracteres y lo guarda; **nunca verifica** el código que el usuario ingresa contra ningún secreto TOTP real | No aplica (simulación) | ⚠️ **SIMULADA** — no es 2FA real, debe re-etiquetarse |
 | WAF / Anti-SQL Injection / Geobloqueo | ✅ (catálogo de seguridad) | ⚠️ Simulado — el propio `CATALOGO-SEGURIDAD.md` lo admite ("Monitoreo tráfico (Simulado)") | Código inspeccionado | ⚠️ **SIMULADA (correctamente reconocida en la doc, pero no en la UI)** |
 | Backups (export/import) | ✅ | ✅ formato `stockdesk-backup-v2` con todas las keys, compatibilidad v1 | Código inspeccionado | 🟡 Funcional pero mejorable — **sin checksum ni validación de estructura antes de restaurar** (riesgo de import corrupto) |
-| IA / Asistente Chat | ✅ ("IA GLM") | ✅ funciona si el usuario configura su propia API key; fallback offline con respuestas locales | Código inspeccionado | 🟡 Funcional pero mejorable — **API key se guarda y se usa desde el cliente/localStorage, expuesta en el navegador** |
+| IA / Asistente Chat | ✅ ("IA GLM") | 🔴 **Código completo y funcional, pero nunca se cargaba**: `ai-assistant.js`, `ai-chat.js` y `ai-advanced.js` no estaban incluidos en `index.html`, por lo que `AIAssistant` era `undefined` en producción y el botón flotante de IA nunca aparecía. **Corregido en P3 de esta sesión** (ver más abajo); ahora sí funciona si el usuario configura su propia API key, con fallback offline con respuestas locales | Código inspeccionado + verificación de carga real en `index.html` | 🔴→🟡 **Era ROTA (nunca se ejecutaba); ahora Funcional pero mejorable** — API key se guarda y se usa desde el cliente/localStorage, expuesta en el navegador |
 | PWA / Offline | ✅ (catálogo menciona compatibilidad) | ❌ No implementado — no existe `manifest.webmanifest`, no existe `service-worker.js` | — | ❌ **NO IMPLEMENTADA** |
 | Multiusuario / Roles (RBAC) | ✅ | ✅ (`users-management.js`, middleware en `router.js`) | Código inspeccionado | 🟡 Funcional pero mejorable — el control de acceso es **solo de UI/cliente**, cualquier usuario con DevTools puede alterar `localStorage` y otorgarse permisos |
 | Notificaciones (email/SMS/WhatsApp) | ✅ | ⚠️ Simulado — son toggles guardados en `localStorage`; no hay integración real con ningún proveedor de envío | — | ⚠️ **SIMULADA** |
@@ -71,6 +80,7 @@ cliente**, **ausencia total de artefactos de producción** (LICENSE, `.gitignore
 | S6 | Restauración de backups sin checksum/validación de esquema | **P2 — Medio** | `security-backup.js` función `restore()`: solo comprueba `data.format === 'stockdesk-backup-v2'`, sin validar tipos/campos antes de sobrescribir todo `localStorage` |
 | S7 | Sin `.gitignore`; riesgo de futuros commits accidentales de `.env`/secretos | **P2 — Medio** | No existe el archivo en el repo |
 | S8 | Notificaciones por Email/SMS/WhatsApp son solo toggles, sin integración real | **P2 — Medio (honestidad comercial)** | No hay ningún cliente HTTP hacia proveedores de mensajería en el código |
+| S9 | El Asistente de IA completo (`ai-assistant.js`, `ai-chat.js`, `ai-advanced.js`) nunca se cargaba en producción: faltaban sus `<script>` en `index.html`, dejando `AIAssistant` como `undefined` | **P0/P1 — Alto (funcionalidad anunciada 100% inoperante)** | `grep "ai-assistant\|ai-chat\|ai-advanced" index.html` no devolvía resultados antes de esta corrección, pese a que los tres archivos existen completos en `js/modules/` y son sintácticamente válidos. **Corregido en P3 de esta sesión.** |
 
 ---
 
@@ -136,6 +146,7 @@ Notas de esta limpieza:
 - [ ] Introducir capa de servicios (`AIService`, `BackupService`, `StorageService`, `AuthService`, `LicenseService`) para desacoplar módulos de `localStorage`/lógica directa — **pendiente**, documentado conceptualmente en `docs/ARCHITECTURE.md` (sección 2.5) y `docs/LICENSING.md`, no implementado en código.
 
 ### P3 — Mejoras (en curso)
+- [x] **Corregido bloqueador crítico del Asistente de IA (hallazgo S9)**: `js/modules/ai-assistant.js`, `js/modules/ai-chat.js` y `js/modules/ai-advanced.js` existen completos y son sintácticamente válidos, pero **ninguno estaba enlazado en `index.html`**, así que `AIAssistant` nunca se definía y todo el asistente (botón flotante, chat, respuestas locales/offline, llamadas a GLM, predicciones y recomendaciones de `ai-advanced.js`) estaba 100% inoperante en producción pese a estar documentado como funcional en `docs/AI.md`/`README.md`. Se agregaron los tres `<script>` en el orden correcto de dependencia (`ai-assistant.js` → `ai-chat.js` → `ai-advanced.js`) justo antes de `js/app.js`. Se conectó además `AIAdvanced` al flujo de respuesta del chat (`ai-chat.js#getAIResponse` ahora invoca `this.getAdvancedResponse()` si está disponible, antes de consultar la API), ya que antes de esta corrección esa integración tampoco se ejercitaba nunca. Se subió `CACHE_VERSION` en `service-worker.js` (`v1` → `v2`) para invalidar el app-shell cacheado de usuarios que ya hubieran instalado la PWA sin estos scripts.
 - [x] **Eliminado código muerto**: `js/modules/users-roles.js` (no estaba cargado en `index.html`; el módulo activo es `users-management.js`).
 - [x] **Cierre del etiquetado honesto pendiente**: se añadieron insignias "Simulado/No implementado" a los interruptores restantes sin etiquetar: Protección Fuerza Bruta y Anti-SQL Injection (`security-threats.js`), Restricción por IP (`security-access.js`, usa una IP fija de demostración), Encriptación de datos (`security-auth.js`), Enmascaramiento de Datos, Borrado Seguro y Nivel de Encriptación (`security-protection.js`). Se corrigió además el "Nivel de Seguridad" de la pantalla principal de Seguridad (`security.js`), renombrado a "Nivel de Configuración" con insignia aclaratoria, para no insinuar una auditoría de seguridad real. Se eliminaron las menciones a "AES-128/AES-256/Militar" como si fueran cifrado activo: hoy no hay ninguna implementación de cifrado en el código (`crypto.subtle.encrypt` no se usa en ningún módulo).
 - [x] **Corregido mismatch de escapador** en `donations.js`: los valores interpolados dentro de `onclick="...('...')"` ahora usan `Sanitize.escapeJsString()` en vez de `escapeHtml()` (necesario porque el navegador decodifica entidades HTML del atributo antes de ejecutar el JS).

@@ -6,6 +6,15 @@ Ver `docs/RELEASE.md` para el proceso de publicación.
 
 ## [Unreleased]
 
+### Corregido (crítico)
+- **El Asistente de IA nunca se cargaba en producción**: `js/modules/ai-assistant.js`,
+  `js/modules/ai-chat.js` y `js/modules/ai-advanced.js` existían completos y eran
+  sintácticamente válidos, pero no estaban enlazados en `index.html`. Se agregaron
+  los tres `<script>` en el orden de dependencia correcto, y se conectó
+  `ai-advanced.js` (predicciones/recomendaciones) al flujo de respuesta del chat.
+  Se subió `CACHE_VERSION` en `service-worker.js` para invalidar el app-shell
+  cacheado por instalaciones PWA previas a esta corrección.
+
 ### Eliminado
 - `js/modules/users-roles.js`: código muerto, no estaba cargado en
   `index.html` (el módulo activo de gestión de usuarios es
