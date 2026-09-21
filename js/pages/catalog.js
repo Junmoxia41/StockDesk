@@ -127,7 +127,7 @@ const CatalogPage = {
                                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30' 
                                            : 'bg-white border border-slate-200 text-slate-600 hover:border-orange-300'}">
                             ${Components.icons[cat.icon] || Components.icons.grid}
-                            ${cat.name}
+                            ${Sanitize.escapeHtml(cat.name)}
                             <span class="px-1.5 py-0.5 rounded-full text-xs ${this.activeCategory === cat.id ? 'bg-white/20' : 'bg-slate-100'}">
                                 ${cat.id === 'all' ? this.features.length : this.features.filter(f => f.category === cat.id).length}
                             </span>
@@ -191,7 +191,7 @@ const CatalogPage = {
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Activo
                     </span>
                 </div>
-                <h4 class="font-semibold text-slate-900 mb-1">${feature.name}</h4>
+                <h4 class="font-semibold text-slate-900 mb-1">${Sanitize.escapeHtml(feature.name)}</h4>
                 <p class="text-sm text-slate-500">${feature.desc}</p>
             </div>
         `;

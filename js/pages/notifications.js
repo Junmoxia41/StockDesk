@@ -72,8 +72,11 @@ const NotificationsPage = {
                                 ${Components.icons.info}
                             </div>
                             <div>
-                                <h4 class="font-semibold text-slate-900">Email</h4>
-                                <p class="text-sm text-slate-500">Recibe notificaciones por correo</p>
+                                <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                                    Email
+                                    ${Components.simulatedBadge('No implementado', 'Este toggle solo guarda una preferencia local. StockDesk todavía no envía correos reales: se necesita un backend/servicio de email (p. ej. SMTP o una API como Resend/SendGrid) para activarlo de verdad.')}
+                                </h4>
+                                <p class="text-sm text-slate-500">Recibe notificaciones por correo (requiere integración de backend, aún no activa)</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -91,8 +94,11 @@ const NotificationsPage = {
                                 ${Components.icons.info}
                             </div>
                             <div>
-                                <h4 class="font-semibold text-slate-900">SMS</h4>
-                                <p class="text-sm text-slate-500">Alertas por mensaje de texto</p>
+                                <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                                    SMS
+                                    ${Components.simulatedBadge('No implementado', 'Este toggle solo guarda una preferencia local. Enviar SMS reales requiere contratar un proveedor externo (p. ej. Twilio) e integrarlo desde un backend.')}
+                                </h4>
+                                <p class="text-sm text-slate-500">Alertas por mensaje de texto (requiere integración de backend, aún no activa)</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -109,8 +115,11 @@ const NotificationsPage = {
                                 ${Components.icons.info}
                             </div>
                             <div>
-                                <h4 class="font-semibold text-slate-900">WhatsApp</h4>
-                                <p class="text-sm text-slate-500">Notificaciones por WhatsApp</p>
+                                <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                                    WhatsApp
+                                    ${Components.simulatedBadge('No implementado', 'Este toggle solo guarda una preferencia local. Enviar mensajes reales de WhatsApp requiere la API oficial de WhatsApp Business y un backend que la invoque.')}
+                                </h4>
+                                <p class="text-sm text-slate-500">Notificaciones por WhatsApp (requiere integración de backend, aún no activa)</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -127,8 +136,11 @@ const NotificationsPage = {
                                 ${Components.icons.info}
                             </div>
                             <div>
-                                <h4 class="font-semibold text-slate-900">Push</h4>
-                                <p class="text-sm text-slate-500">Notificaciones en el navegador</p>
+                                <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                                    Push
+                                    ${Components.simulatedBadge('No implementado', 'Este toggle guarda una preferencia local pero todavía no está conectado a la Notification API del navegador ni a un servicio de push real.')}
+                                </h4>
+                                <p class="text-sm text-slate-500">Notificaciones en el navegador (pendiente de conectar a la Notification API real)</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">

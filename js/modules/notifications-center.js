@@ -32,8 +32,8 @@ const NotificationsCenter = {
                                     <div class="flex-1">
                                         <div class="flex items-start justify-between">
                                             <div>
-                                                <h4 class="font-medium text-slate-900">${n.title}</h4>
-                                                <p class="text-sm text-slate-600 mt-1">${n.message}</p>
+                                                <h4 class="font-medium text-slate-900">${Sanitize.escapeHtml(n.title)}</h4>
+                                                <p class="text-sm text-slate-600 mt-1">${Sanitize.escapeHtml(n.message)}</p>
                                             </div>
                                             <span class="text-xs text-slate-400">${this.formatTime(n.date)}</span>
                                         </div>

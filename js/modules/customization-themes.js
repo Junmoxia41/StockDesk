@@ -28,7 +28,7 @@ const CustomizationThemes = {
                                     <div class="w-8 h-8 rounded-full" style="background: ${theme.primary}"></div>
                                     <div class="w-6 h-6 rounded-full" style="background: ${theme.secondary}"></div>
                                 </div>
-                                <p class="font-medium text-slate-900 text-sm">${theme.name}</p>
+                                <p class="font-medium text-slate-900 text-sm">${Sanitize.escapeHtml(theme.name)}</p>
                                 ${currentTheme === theme.id ? '<p class="text-xs text-orange-600 mt-1">Activo</p>' : ''}
                             </button>
                         `).join('')}

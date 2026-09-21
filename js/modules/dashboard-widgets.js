@@ -186,7 +186,7 @@ const DashboardWidgets = {
                     <div class="${full ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2'}">
                         ${products.slice(0, full ? 9 : 5).map(p => `
                             <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                                <span class="text-sm text-slate-700">${p.name}</span>
+                                <span class="text-sm text-slate-700">${Sanitize.escapeHtml(p.name)}</span>
                                 <span class="text-sm font-bold text-red-600">${p.stock} uds</span>
                             </div>
                         `).join('')}
@@ -210,7 +210,7 @@ const DashboardWidgets = {
                             <div class="flex items-start gap-3">
                                 <div class="w-2 h-2 rounded-full bg-orange-500 mt-1.5"></div>
                                 <div>
-                                    <p class="text-sm text-slate-700">${l.event}</p>
+                                    <p class="text-sm text-slate-700">${Sanitize.escapeHtml(l.event)}</p>
                                     <p class="text-xs text-slate-400">${new Date(l.date).toLocaleString('es')}</p>
                                 </div>
                             </div>

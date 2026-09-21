@@ -77,14 +77,14 @@ const DonationsModule = {
 
                     <!-- Opción Móvil -->
                     <div class="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between hover:border-orange-300 transition group"
-                         onclick="DonationsModule.copyToClipboard('${this.config.cuba.phone}')">
+                         onclick="DonationsModule.copyToClipboard('${Sanitize.escapeHtml(this.config.cuba.phone)}')">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                             </div>
                             <div>
                                 <p class="font-bold text-slate-900">Recarga Móvil</p>
-                                <p class="text-xs text-slate-500 font-mono">${this.config.cuba.phone}</p>
+                                <p class="text-xs text-slate-500 font-mono">${Sanitize.escapeHtml(this.config.cuba.phone)}</p>
                             </div>
                         </div>
                         <button class="text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium">Copiar</button>

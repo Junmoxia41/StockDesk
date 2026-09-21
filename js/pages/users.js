@@ -103,7 +103,7 @@ const UsersPage = {
 
     exportAudit() {
         const logs = Store.get('stockdesk_audit_logs') || [];
-        const csv = 'Fecha,Usuario,Acción,Módulo,Detalles\n' + logs.map(l => `"${l.date}","${l.user}","${l.action}","${l.module}","${l.details || ''}"`).join('\n');
+        const csv = 'Fecha,Usuario,Acción,Módulo,Detalles\n' + logs.map(l => [l.date, Sanitize.csvField(l.user), Sanitize.csvField(l.action), Sanitize.csvField(l.module), Sanitize.csvField(l.details || '')].join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

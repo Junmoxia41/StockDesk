@@ -31,7 +31,7 @@ const InventoryWarehouses = {
                                     </div>
                                     ${w.isDefault ? '<span class="px-2 py-1 bg-green-100 text-green-600 text-xs rounded-full">Principal</span>' : ''}
                                 </div>
-                                <h4 class="font-semibold text-slate-900 mb-1">${w.name}</h4>
+                                <h4 class="font-semibold text-slate-900 mb-1">${Sanitize.escapeHtml(w.name)}</h4>
                                 <p class="text-sm text-slate-500 mb-4">${w.location || 'Sin ubicación'}</p>
                                 <div class="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
                                     <div>

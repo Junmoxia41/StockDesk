@@ -60,7 +60,7 @@ const DashboardPage = {
       <div class="space-y-2 max-h-40 overflow-y-auto">
         ${products.filter(p => p.stock < 10).slice(0, 5).map(p => `
           <div class="flex items-center justify-between p-2 md:p-3 bg-red-50 rounded-lg">
-            <span class="text-xs md:text-sm text-slate-700 truncate">${p.name}</span>
+            <span class="text-xs md:text-sm text-slate-700 truncate">${Sanitize.escapeHtml(p.name)}</span>
             <span class="text-xs md:text-sm font-semibold text-red-600">${p.stock} uds</span>
           </div>
         `).join('') || '<p class="text-slate-500 text-sm text-center py-4">No hay productos con stock bajo</p>'}

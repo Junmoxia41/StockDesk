@@ -93,7 +93,7 @@ const FinanceLedger = {
                                                     ${t.type === 'income' ? 'Ingreso' : 'Egreso'}
                                                 </span>
                                             </td>
-                                            <td class="px-4 py-3 text-sm text-slate-900">${t.category}</td>
+                                            <td class="px-4 py-3 text-sm text-slate-900">${Sanitize.escapeHtml(t.category)}</td>
                                             <td class="px-4 py-3 text-sm text-slate-500">${t.description || '-'}</td>
                                             <td class="px-4 py-3 text-sm font-semibold text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">
                                                 ${t.type === 'income' ? '+' : '-'}$${t.amount.toFixed(2)}
@@ -121,7 +121,7 @@ const FinanceLedger = {
     export() {
         const transactions = Store.transactions.getByDateRange(this.dateFrom, this.dateTo);
         const csv = 'Fecha,Tipo,Categoría,Descripción,Monto\n' + 
-            transactions.map(t => `${t.date},${t.type},${t.category},"${t.description || ''}",${t.amount}`).join('\n');
+            transactions.map(t => [t.date, t.type, Sanitize.csvField(t.category), Sanitize.csvField(t.description || ''), t.amount].join(',')).join('\n');
         
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
@@ -180,7 +180,7 @@ const FinanceExpenses = {
                                 <div class="px-4 py-3 flex items-center justify-between">
                                     <div>
                                         <p class="font-medium text-slate-900">${e.description || e.category}</p>
-                                        <p class="text-xs text-slate-500">${new Date(e.date).toLocaleDateString('es')} - ${e.category}</p>
+                                        <p class="text-xs text-slate-500">${new Date(e.date).toLocaleDateString('es')} - ${Sanitize.escapeHtml(e.category)}</p>
                                     </div>
                                     <span class="font-semibold text-red-600">-$${e.amount.toFixed(2)}</span>
                                 </div>

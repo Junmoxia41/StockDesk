@@ -1,0 +1,35 @@
+Copyright (c) 2026 Junmoxia41. Todos los derechos reservados.
+
+Este software y su código fuente ("StockDesk") son propiedad de su autor/
+propietario ("el Propietario"). El código se distribuye en este repositorio
+con fines de demostración, evaluación, colaboración y desarrollo.
+
+NO SE CONCEDE NINGUNA LICENCIA DE CÓDIGO ABIERTO. Salvo que el Propietario
+otorgue por escrito una licencia distinta (ver LICENSE-COMMERCIAL.md y
+docs/LICENSING.md), queda prohibido:
+
+  - usar este software en producción o con fines comerciales;
+  - redistribuir, sublicenciar o revender el código fuente o binarios;
+  - crear obras derivadas para distribución pública o comercial;
+  - eliminar avisos de copyright o de propiedad.
+
+Se permite:
+  - clonar y ejecutar el código localmente con fines de evaluación técnica,
+    revisión de código o contribución al propio repositorio del Propietario;
+  - proponer cambios mediante pull requests, que quedarán sujetos a los
+    mismos términos de este archivo salvo acuerdo distinto.
+
+EL SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA
+O IMPLÍCITA, INCLUYENDO PERO NO LIMITADO A GARANTÍAS DE COMERCIABILIDAD,
+IDONEIDAD PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN. EN NINGÚN CASO EL
+PROPIETARIO SERÁ RESPONSABLE DE NINGÚN RECLAMO, DAÑO U OTRA RESPONSABILIDAD
+DERIVADA DEL USO DEL SOFTWARE.
+
+Para licenciamiento comercial (uso en producción, reventa, white-label,
+licencias por negocio o suscripción), consulta LICENSE-COMMERCIAL.md y
+docs/LICENSING.md, o contacta al Propietario.
+
+AVISO: Este texto es una plantilla de licencia preparada como parte de una
+auditoría de preparación para producción y NO constituye asesoría legal.
+Debe ser revisado por un profesional del derecho antes de usarse como
+contrato vinculante definitivo.

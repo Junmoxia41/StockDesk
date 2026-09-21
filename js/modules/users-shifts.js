@@ -118,7 +118,7 @@ const UsersShifts = {
           </span>
         </div>
 
-        <h4 class="font-semibold text-slate-900 mb-1">${reg.name}</h4>
+        <h4 class="font-semibold text-slate-900 mb-1">${Sanitize.escapeHtml(reg.name)}</h4>
         <p class="text-sm text-slate-500 mb-4">${reg.location || 'Sin ubicación'}</p>
 
         <div class="flex gap-2">
@@ -150,7 +150,7 @@ const UsersShifts = {
   <div>
     <label class="block text-sm font-medium text-slate-700 mb-1">Caja</label>
     <select id="shift-register" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
-      ${registers.map(r => `<option value="${r.name}">${r.name}</option>`).join('')}
+      ${registers.map(r => `<option value="${Sanitize.escapeHtml(r.name)}">${Sanitize.escapeHtml(r.name)}</option>`).join('')}
     </select>
   </div>
 
@@ -259,7 +259,7 @@ const UsersShifts = {
 <form class="space-y-4">
   <div>
     <label class="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-    <input type="text" id="reg-name" value="${reg.name}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
+    <input type="text" id="reg-name" value="${Sanitize.escapeHtml(reg.name)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
   </div>
   <div>
     <label class="block text-sm font-medium text-slate-700 mb-1">Ubicación</label>

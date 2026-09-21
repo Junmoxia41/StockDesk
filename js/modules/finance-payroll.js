@@ -67,7 +67,7 @@ const FinancePayroll = {
                                             ${e.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div>
-                                            <p class="font-medium text-slate-900">${e.name}</p>
+                                            <p class="font-medium text-slate-900">${Sanitize.escapeHtml(e.name)}</p>
                                             <p class="text-xs text-slate-500">${e.position || 'Sin cargo'}</p>
                                         </div>
                                     </div>
@@ -76,7 +76,7 @@ const FinancePayroll = {
                                             <p class="font-semibold text-slate-900">$${(e.salary || 0).toFixed(2)}</p>
                                             <p class="text-xs text-slate-500">mensual</p>
                                         </div>
-                                        <button onclick="FinancePayroll.payEmployee(${e.id}, '${e.name}', ${e.salary || 0})" 
+                                        <button onclick="FinancePayroll.payEmployee(${e.id}, '${Sanitize.escapeJsString(e.name)}', ${e.salary || 0})" 
                                                 class="px-3 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 text-sm font-medium rounded-lg transition">
                                             Pagar
                                         </button>
@@ -102,7 +102,7 @@ const FinancePayroll = {
                             ${payments.slice().reverse().slice(0, 10).map(p => `
                                 <div class="px-4 py-3 flex items-center justify-between">
                                     <div>
-                                        <p class="font-medium text-slate-900">${p.employeeName}</p>
+                                        <p class="font-medium text-slate-900">${Sanitize.escapeHtml(p.employeeName)}</p>
                                         <p class="text-xs text-slate-500">${new Date(p.date).toLocaleDateString('es')}</p>
                                     </div>
                                     <span class="font-semibold text-green-600">$${p.amount.toFixed(2)}</span>

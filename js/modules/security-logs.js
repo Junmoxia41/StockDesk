@@ -54,7 +54,7 @@ const SecurityLogs = {
                                                 ${new Date(log.date).toLocaleString('es')}
                                             </td>
                                             <td class="px-4 py-3 text-sm font-medium text-slate-900">
-                                                ${log.event}
+                                                ${Sanitize.escapeHtml(log.event)}
                                             </td>
                                             <td class="px-4 py-3">
                                                 <span class="px-2 py-1 text-xs rounded-full ${this.getTypeColor(log.type)}">
@@ -126,7 +126,7 @@ const SecurityLogs = {
     export() {
         const logs = Store.security.getLogs();
         const csv = 'Fecha,Evento,Tipo,IP,Dispositivo\n' + 
-            logs.map(l => `"${l.date}","${l.event}","${l.type || 'general'}","${l.ip || ''}","${l.device || ''}"`).join('\n');
+            logs.map(l => [l.date, Sanitize.csvField(l.event), Sanitize.csvField(l.type || 'general'), Sanitize.csvField(l.ip || ''), Sanitize.csvField(l.device || '')].join(',')).join('\n');
         
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);

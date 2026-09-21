@@ -3,7 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stock Desk</title>
+  <title>StockDesk - Gestión de Inventario, POS y Finanzas</title>
+  <meta name="description" content="StockDesk: control de inventario, punto de venta, finanzas y reportes para pequeños y medianos negocios, todo en una sola aplicación.">
+
+  <!--
+    NOTA: esta app funciona como SPA con una landing pública (js/pages/landing.js)
+    y un producto autenticado detrás de login. Mientras no se separen en
+    orígenes/rutas distintas, se mantiene "noindex" para no indexar pantallas
+    internas del producto. Si se despliega una landing de marketing en una
+    ruta/dominio propio, esa página SÍ debería permitir indexación.
+  -->
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Open Graph / previsualización al compartir enlaces -->
+  <meta property="og:title" content="StockDesk - Gestión de Inventario, POS y Finanzas">
+  <meta property="og:description" content="Control total de tu negocio en un solo lugar: inventario, punto de venta, finanzas, reportes e IA.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/icons/icon-512.png">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
@@ -13,7 +35,6 @@
 
   <link rel="stylesheet" href="css/styles.css?v=999">
   <meta name="theme-color" content="#f97316">
-  <meta name="robots" content="noindex, nofollow">
 </head>
 
 <body class="font-sans bg-slate-50 text-slate-900">

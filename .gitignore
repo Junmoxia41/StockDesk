@@ -1,0 +1,34 @@
+# StockDesk - .gitignore
+# P1 (auditoría de producción): el repositorio no tenía .gitignore.
+# Estas reglas evitan que secretos, dependencias o artefactos temporales
+# lleguen accidentalmente a un repositorio público.
+
+# Variables de entorno y secretos (nunca deben ir a Git)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Dependencias (si en el futuro se añade tooling con package.json)
+node_modules/
+
+# Artefactos de build/deploy
+dist/
+build/
+.vercel/
+
+# Logs y temporales
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editores / IDE
+.vscode/
+.idea/
+*.swp
+
+# Cachés de testing/lint (si se añaden en el futuro)
+.cache/
+coverage/

@@ -26,14 +26,14 @@ const CustomizationTickets = {
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-2">Encabezado</label>
-          <input type="text" id="ticket-header" value="${ticketConfig.header}"
+          <input type="text" id="ticket-header" value="${Sanitize.escapeHtml(ticketConfig.header)}"
             class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
         </div>
 
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-2">Pie de Ticket</label>
           <textarea id="ticket-footer" rows="2"
-            class="w-full px-4 py-2.5 rounded-lg border border-slate-200">${ticketConfig.footer}</textarea>
+            class="w-full px-4 py-2.5 rounded-lg border border-slate-200">${Sanitize.escapeHtml(ticketConfig.footer)}</textarea>
         </div>
 
         <div>
@@ -80,7 +80,7 @@ const CustomizationTickets = {
     <div class="flex justify-center">
       <div class="bg-white border-2 border-dashed border-slate-300 p-4 w-72 font-mono text-xs">
         <div class="text-center mb-3">
-          <p class="font-bold text-sm">${ticketConfig.header}</p>
+          <p class="font-bold text-sm">${Sanitize.escapeHtml(ticketConfig.header)}</p>
           <p class="text-slate-500">${Store.settings.get().businessName || 'Mi Negocio'}</p>
         </div>
 
@@ -109,7 +109,7 @@ const CustomizationTickets = {
         ` : ''}
 
         <div class="border-t border-dashed border-slate-300 my-2"></div>
-        <div class="text-center"><p>${ticketConfig.footer}</p></div>
+        <div class="text-center"><p>${Sanitize.escapeHtml(ticketConfig.footer)}</p></div>
       </div>
     </div>
   </div>

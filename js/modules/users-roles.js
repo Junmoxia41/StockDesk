@@ -35,8 +35,8 @@ const UsersRoles = {
                                         ${user.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                        <h4 class="font-semibold text-slate-900">${user.name}</h4>
-                                        <p class="text-sm text-slate-500">@${user.username}</p>
+                                        <h4 class="font-semibold text-slate-900">${Sanitize.escapeHtml(user.name)}</h4>
+                                        <p class="text-sm text-slate-500">@${Sanitize.escapeHtml(user.username)}</p>
                                     </div>
                                 </div>
                                 <span class="px-2 py-1 text-xs rounded-full ${user.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'}">
@@ -106,7 +106,7 @@ const UsersRoles = {
                                         ${Components.icons.lock}
                                     </div>
                                     <div>
-                                        <h4 class="font-semibold text-slate-900">${role.name}</h4>
+                                        <h4 class="font-semibold text-slate-900">${Sanitize.escapeHtml(role.name)}</h4>
                                         <p class="text-xs text-slate-500">${role.permissions.length} permisos</p>
                                     </div>
                                 </div>
@@ -158,7 +158,7 @@ const UsersRoles = {
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Rol</label>
                         <select id="user-role" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
-                            ${roles.map(r => `<option value="${r.name}">${r.name}</option>`).join('')}
+                            ${roles.map(r => `<option value="${Sanitize.escapeHtml(r.name)}">${Sanitize.escapeHtml(r.name)}</option>`).join('')}
                         </select>
                     </div>
                     <div>
@@ -181,7 +181,7 @@ const UsersRoles = {
                 };
                 users.push(newUser);
                 Store.set('stockdesk_users', users);
-                addAuditLog('Crear', 'Usuarios', `Usuario ${newUser.username} creado`);
+                addAuditLog('Crear', 'Usuarios', `Usuario ${Sanitize.escapeHtml(newUser.username)} creado`);
                 Components.toast('Usuario creado', 'success');
                 Router.navigate('users');
             }
@@ -200,12 +200,12 @@ const UsersRoles = {
                 <form class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Nombre Completo</label>
-                        <input type="text" id="user-name" value="${user.name}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
+                        <input type="text" id="user-name" value="${Sanitize.escapeHtml(user.name)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Rol</label>
                         <select id="user-role" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
-                            ${roles.map(r => `<option value="${r.name}" ${user.role === r.name ? 'selected' : ''}>${r.name}</option>`).join('')}
+                            ${roles.map(r => `<option value="${Sanitize.escapeHtml(r.name)}" ${user.role === r.name ? 'selected' : ''}>${Sanitize.escapeHtml(r.name)}</option>`).join('')}
                         </select>
                     </div>
                     <div>

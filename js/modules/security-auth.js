@@ -13,6 +13,7 @@ const SecurityAuth = {
       <div class="flex items-center gap-3">
         ${Components.icons.lock}
         <h3 class="font-semibold text-slate-900">Autenticación de Dos Factores (2FA)</h3>
+        ${Components.simulatedBadge('Simulado (demo)', 'Este 2FA no usa un algoritmo TOTP/HOTP real ni verifica el código introducido contra un secreto criptográfico. Genera un código visual y activa un indicador. No ofrece protección real de segundo factor todavía.')}
       </div>
       <span class="px-3 py-1 text-xs rounded-full ${security.twoFactorEnabled ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'}">
         ${security.twoFactorEnabled ? 'Activo' : 'Inactivo'}
@@ -21,6 +22,11 @@ const SecurityAuth = {
     <div class="p-5">
       <p class="text-sm text-slate-600 mb-4">
         Añade una capa extra de seguridad a tu cuenta requiriendo un código adicional al iniciar sesión.
+      </p>
+      <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+        <strong>Nota de transparencia:</strong> esta versión de 2FA es una simulación local pensada para
+        demostrar el flujo de UI. No genera ni valida un secreto TOTP real, por lo que aún no debe
+        considerarse una protección de seguridad efectiva.
       </p>
       <div class="flex flex-wrap gap-3">
         ${security.twoFactorEnabled ? `

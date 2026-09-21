@@ -2,6 +2,16 @@
  * Store Module - State Management with LocalStorage
  * Stock Desk Application
  * FULL FIX: incluye payroll y budgets (para Nómina/Presupuestos)
+ *
+ * NOTA DE PRODUCCIÓN (reconstrucción P0):
+ * Este archivo estaba truncado a mitad de la función `products.add` y le
+ * faltaban TODOS los namespaces (sales, warehouses, transfers, kardex,
+ * inventoryCounts, kits, transactions, expenses, payroll, budgets,
+ * security, settings, sales) que el resto de la aplicación invoca.
+ * Sin ellos la app no podía ni siquiera cargar (SyntaxError fatal en el
+ * primer script), dejando el producto 100% inoperativo.
+ * Se reconstruyó respetando exactamente las firmas usadas en
+ * js/pages/*.js y js/modules/*.js.
  */
 const Store = {
   KEYS: {
@@ -229,9 +239,25 @@ const Store = {
     }
   },
 
+  _nextId(list) {
+    return list.length > 0 ? Math.max(...list.map(i => i.id)) + 1 : 1;
+  },
+
   device: {
     get() { return Store.get(Store.KEYS.DEVICE); },
     set(device) { Store.set(Store.KEYS.DEVICE, device); }
+  },
+
+  settings: {
+    get() {
+      return Store.get(Store.KEYS.SETTINGS) || Store.DEFAULTS.settings;
+    },
+    update(patch) {
+      const current = this.get();
+      const updated = { ...current, ...patch };
+      Store.set(Store.KEYS.SETTINGS, updated);
+      return updated;
+    }
   },
 
   products: {
@@ -239,9 +265,20 @@ const Store = {
     getById(id) { return this.getAll().find(p => p.id === id); },
     getByWarehouse(warehouseId) { return this.getAll().filter(p => p.warehouseId === warehouseId); },
 
+    search(query) {
+      const q = String(query || '').toLowerCase().trim();
+      if (!q) return this.getAll();
+      return this.getAll().filter(p =>
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.sku || '').toLowerCase().includes(q) ||
+        (p.barcode || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q)
+      );
+    },
+
     add(product) {
       const products = this.getAll();
-      const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+      const newId = Store._nextId(products);
 
       const newProduct = {
         ...product,
@@ -252,8 +289,343 @@ const Store = {
         lot: product.lot || '',
         expirationDate: product.expirationDate || '',
         minStock: product.minStock || 5,
+        stock: Number(product.stock) || 0,
+        price: Number(product.price) || 0,
+        cost: Number(product.cost) || 0,
         createdAt: new Date().toISOString()
       };
 
       products.push(newProduct);
-      Store.set
+      Store.set(Store.KEYS.PRODUCTS, products);
+      return newProduct;
+    },
+
+    update(id, patch) {
+      const products = this.getAll();
+      const idx = products.findIndex(p => p.id === id);
+      if (idx === -1) return null;
+      products[idx] = { ...products[idx], ...patch, updatedAt: new Date().toISOString() };
+      Store.set(Store.KEYS.PRODUCTS, products);
+      return products[idx];
+    },
+
+    delete(id) {
+      const products = this.getAll().filter(p => p.id !== id);
+      Store.set(Store.KEYS.PRODUCTS, products);
+    },
+
+    // Descuenta stock (usado por el POS). Nunca deja el stock en negativo.
+    updateStock(id, quantitySold) {
+      const products = this.getAll();
+      const idx = products.findIndex(p => p.id === id);
+      if (idx === -1) return null;
+      const newStock = Math.max(0, (products[idx].stock || 0) - Number(quantitySold || 0));
+      products[idx].stock = newStock;
+      Store.set(Store.KEYS.PRODUCTS, products);
+      return products[idx];
+    }
+  },
+
+  sales: {
+    getAll() { return Store.get(Store.KEYS.SALES) || []; },
+    getById(id) { return this.getAll().find(s => s.id === id); },
+
+    getTodaySales() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return this.getAll().filter(s => new Date(s.date) >= today);
+    },
+
+    add(sale) {
+      const sales = this.getAll();
+      const newSale = {
+        ...sale,
+        id: Date.now(),
+        date: sale.date || new Date().toISOString()
+      };
+      sales.push(newSale);
+      Store.set(Store.KEYS.SALES, sales);
+
+      // Registrar movimientos de Kardex automáticamente por cada línea vendida
+      if (Array.isArray(sale.items)) {
+        sale.items.forEach(item => {
+          Store.kardex.add(item.id, 'salida', item.qty, `Venta #${String(newSale.id).slice(-6)}`, item.name);
+        });
+      }
+
+      return newSale;
+    }
+  },
+
+  warehouses: {
+    getAll() { return Store.get(Store.KEYS.WAREHOUSES) || Store.DEFAULTS.warehouses; },
+    getById(id) { return this.getAll().find(w => w.id === id); },
+
+    add(warehouse) {
+      const warehouses = this.getAll();
+      const newWarehouse = { ...warehouse, id: Store._nextId(warehouses), isDefault: false };
+      warehouses.push(newWarehouse);
+      Store.set(Store.KEYS.WAREHOUSES, warehouses);
+      return newWarehouse;
+    },
+
+    update(id, patch) {
+      const warehouses = this.getAll();
+      const idx = warehouses.findIndex(w => w.id === id);
+      if (idx === -1) return null;
+      warehouses[idx] = { ...warehouses[idx], ...patch };
+      Store.set(Store.KEYS.WAREHOUSES, warehouses);
+      return warehouses[idx];
+    },
+
+    delete(id) {
+      const warehouses = this.getAll().filter(w => w.id !== id);
+      Store.set(Store.KEYS.WAREHOUSES, warehouses);
+    }
+  },
+
+  transfers: {
+    getAll() { return Store.get(Store.KEYS.TRANSFERS) || []; },
+    add(transfer) {
+      const transfers = this.getAll();
+      const newTransfer = {
+        ...transfer,
+        id: Store._nextId(transfers),
+        date: new Date().toISOString(),
+        status: 'completed'
+      };
+      transfers.push(newTransfer);
+      Store.set(Store.KEYS.TRANSFERS, transfers);
+      return newTransfer;
+    }
+  },
+
+  kardex: {
+    getAll() { return Store.get(Store.KEYS.KARDEX) || []; },
+    getByProduct(productId) { return this.getAll().filter(k => k.productId === productId); },
+
+    add(productId, type, quantity, reason, productNameOverride) {
+      const kardex = this.getAll();
+      const product = Store.products.getById(productId);
+      const productName = productNameOverride || product?.name || 'Producto eliminado';
+      const balance = product ? product.stock : null;
+
+      const entry = {
+        id: Store._nextId(kardex),
+        productId,
+        productName,
+        type, // 'entrada' | 'salida' | 'transferencia'
+        quantity: Number(quantity) || 0,
+        balance,
+        reason: reason || '',
+        date: new Date().toISOString()
+      };
+      kardex.push(entry);
+      Store.set(Store.KEYS.KARDEX, kardex);
+      return entry;
+    }
+  },
+
+  inventoryCounts: {
+    getAll() { return Store.get(Store.KEYS.INVENTORY_COUNTS) || []; },
+    add(count) {
+      const counts = this.getAll();
+      const newCount = { ...count, id: Store._nextId(counts), date: new Date().toISOString() };
+      counts.push(newCount);
+      Store.set(Store.KEYS.INVENTORY_COUNTS, counts);
+      return newCount;
+    }
+  },
+
+  kits: {
+    getAll() { return Store.get(Store.KEYS.KITS) || []; },
+    add(kit) {
+      const kits = this.getAll();
+      const newKit = { ...kit, id: Store._nextId(kits), createdAt: new Date().toISOString() };
+      kits.push(newKit);
+      Store.set(Store.KEYS.KITS, kits);
+      return newKit;
+    },
+    delete(id) {
+      const kits = this.getAll().filter(k => k.id !== id);
+      Store.set(Store.KEYS.KITS, kits);
+    }
+  },
+
+  transactions: {
+    getAll() { return Store.get(Store.KEYS.TRANSACTIONS) || []; },
+
+    getByDateRange(from, to) {
+      const fromDate = from ? new Date(from) : null;
+      const toDate = to ? new Date(to) : null;
+      if (toDate) toDate.setHours(23, 59, 59, 999);
+      return this.getAll().filter(t => {
+        const d = new Date(t.date);
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+        return true;
+      });
+    },
+
+    add(transaction) {
+      const transactions = this.getAll();
+      const newTransaction = {
+        ...transaction,
+        id: Store._nextId(transactions),
+        amount: Number(transaction.amount) || 0,
+        date: transaction.date || new Date().toISOString()
+      };
+      transactions.push(newTransaction);
+      Store.set(Store.KEYS.TRANSACTIONS, transactions);
+      return newTransaction;
+    }
+  },
+
+  expenses: {
+    getAll() { return Store.get(Store.KEYS.EXPENSES) || []; },
+    add(expense) {
+      const expenses = this.getAll();
+      const newExpense = {
+        ...expense,
+        id: Store._nextId(expenses),
+        amount: Number(expense.amount) || 0,
+        date: new Date().toISOString()
+      };
+      expenses.push(newExpense);
+      Store.set(Store.KEYS.EXPENSES, expenses);
+
+      // Los gastos operativos también impactan el flujo de caja general
+      Store.transactions.add({
+        type: 'expense',
+        category: expense.category,
+        amount: newExpense.amount,
+        description: expense.description
+      });
+
+      return newExpense;
+    }
+  },
+
+  payroll: {
+    getAll() { return Store.get(Store.KEYS.PAYROLL) || []; },
+
+    addEmployee(employee) {
+      const payroll = this.getAll();
+      const newEmployee = {
+        ...employee,
+        id: Store._nextId(payroll),
+        type: 'employee',
+        salary: Number(employee.salary) || 0,
+        date: new Date().toISOString()
+      };
+      payroll.push(newEmployee);
+      Store.set(Store.KEYS.PAYROLL, payroll);
+      return newEmployee;
+    },
+
+    addPayment(payment) {
+      const payroll = this.getAll();
+      const newPayment = {
+        ...payment,
+        id: Store._nextId(payroll),
+        type: 'payment',
+        amount: Number(payment.amount) || 0,
+        date: new Date().toISOString()
+      };
+      payroll.push(newPayment);
+      Store.set(Store.KEYS.PAYROLL, payroll);
+
+      // Un pago de nómina es un egreso real del negocio
+      Store.transactions.add({
+        type: 'expense',
+        category: 'Nómina',
+        amount: newPayment.amount,
+        description: `${payment.concept || 'Pago nómina'} - ${payment.employeeName || ''}`
+      });
+
+      return newPayment;
+    }
+  },
+
+  budgets: {
+    getAll() { return Store.get(Store.KEYS.BUDGETS) || []; },
+    add(budget) {
+      const budgets = this.getAll();
+      const newBudget = {
+        ...budget,
+        id: Store._nextId(budgets),
+        amount: Number(budget.amount) || 0,
+        createdAt: new Date().toISOString()
+      };
+      budgets.push(newBudget);
+      Store.set(Store.KEYS.BUDGETS, budgets);
+      return newBudget;
+    }
+  },
+
+  security: {
+    get() {
+      return Store.get(Store.KEYS.SECURITY) || Store.DEFAULTS.security;
+    },
+    update(patch) {
+      const current = this.get();
+      const updated = { ...current, ...patch };
+      Store.set(Store.KEYS.SECURITY, updated);
+      return updated;
+    },
+
+    getLogs() { return Store.get(Store.KEYS.SECURITY_LOGS) || []; },
+    // NOTA: el campo se llama `event` porque así lo esperan las vistas
+    // (security-logs.js, dashboard-widgets.js). Se mantiene `message` como
+    // alias por compatibilidad con código que pudiera leerlo así.
+    addLog(event, type = 'info') {
+      const logs = this.getLogs();
+      logs.push({
+        id: Store._nextId(logs),
+        event,
+        message: event,
+        type,
+        ip: '127.0.0.1',
+        device: Store.device.get() || 'Desktop',
+        date: new Date().toISOString()
+      });
+      Store.set(Store.KEYS.SECURITY_LOGS, logs);
+    },
+    clearLogs() { Store.set(Store.KEYS.SECURITY_LOGS, []); },
+
+    getBackups() { return Store.get(Store.KEYS.SECURITY_BACKUPS) || []; },
+    addBackup(backup) {
+      const backups = this.getBackups();
+      backups.push(backup);
+      Store.set(Store.KEYS.SECURITY_BACKUPS, backups);
+      return backup;
+    },
+    deleteBackup(id) {
+      const backups = this.getBackups().filter(b => b.id !== id);
+      Store.set(Store.KEYS.SECURITY_BACKUPS, backups);
+    },
+
+    getSessions() {
+      const sessions = Store.get(Store.KEYS.SECURITY_SESSIONS);
+      if (sessions && sessions.length > 0) return sessions;
+      // Sesión simulada por defecto (no hay backend real de sesiones)
+      return [{
+        id: 'current',
+        device: Store.device.get() || 'Este dispositivo',
+        ip: '127.0.0.1',
+        lastActive: new Date().toISOString()
+      }];
+    },
+    removeSession(id) {
+      const sessions = this.getSessions().filter(s => s.id !== id);
+      Store.set(Store.KEYS.SECURITY_SESSIONS, sessions);
+    },
+    closeAllSessions() {
+      Store.set(Store.KEYS.SECURITY_SESSIONS, [this.getSessions()[0]]);
+    }
+  }
+};
+
+function isObject(item) {
+  return item && typeof item === 'object' && !Array.isArray(item);
+}
